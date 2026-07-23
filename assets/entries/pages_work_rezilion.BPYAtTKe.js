@@ -8,7 +8,7 @@ import{j as c,f as k,l as x,m as u,n as e,g as a,a as z,d as p,i as t,U as i,b a
   }
   
   .clients-list {
-    animation: scroll-x 120s linear infinite;   
+    animation: scroll-x 90s linear infinite;   
   }
   
   .clients-list>li {
