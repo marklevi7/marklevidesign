@@ -27,3 +27,11 @@ The site has a token system: colors (`--color-black`, `--color-black-light`, `--
 Plan: port animations from these two prior projects. Show links to owner before other work.
 1. https://claude.ai/code/session_01MKEA6RrcTgMrCcT2XdGLLF
 2. MLD website 2026 (David)
+
+## Deploys and cache (auto-refresh)
+
+Every page carries `<meta name="mld-build">` plus an inline `mld-autorefresh` script. The script polls the current URL with `cache: 'no-store'`, compares build ids, and reloads once (guarded by sessionStorage, so no reload loops) when a new build is live. This is what lets visitors pick up changes without clearing their cache.
+
+**After editing any page HTML, run `python3 tools/stamp-build.py`** so the build ids change — otherwise the auto-refresh has nothing to detect.
+
+Deploys can also fail: GitHub Pages sometimes leaves a run stuck in `deployment_queued` until it times out, and the site then silently keeps serving the previous version. If a change is missing from the live site, check the Pages workflow runs before assuming a cache problem; the fix is to re-run the deploy (a new commit on `main` triggers one).

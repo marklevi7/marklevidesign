@@ -75,6 +75,25 @@ function make(){
 }
 if(document.readyState!=='loading')make();else document.addEventListener('DOMContentLoaded',make);
 try{new MutationObserver(function(){make()}).observe(document.documentElement,{childList:true,subtree:true})}catch(e){setInterval(make,1000)}
+})();</script><meta name="mld-build" content="30d783b867"><script id="mld-autorefresh">(function(){
+var m=document.querySelector('meta[name="mld-build"]');if(!m)return;var id=m.content;var busy=false;
+function check(){
+ if(busy)return;busy=true;
+ fetch(location.pathname+(location.search?location.search+'&':'?')+'_cb='+Date.now(),{cache:'no-store'})
+  .then(function(r){return r.text()})
+  .then(function(t){
+    var f=t.match(/name="mld-build" content="([^"]+)"/);
+    if(!f||f[1]===id)return;
+    var k='mld-reloaded-'+f[1];
+    try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(e){}
+    location.replace(location.pathname+'?v='+f[1]);
+  })
+  .catch(function(){})
+  .then(function(){busy=false});
+}
+setTimeout(check,2500);
+setInterval(check,60000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
 })();</script></head>
 <body>
 <div class="wrap">
