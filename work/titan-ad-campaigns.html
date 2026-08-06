@@ -3,23 +3,44 @@
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "Mark Levi Design"
-}</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/><style id="mld-theme-css">#theme-btn{width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--color-black);cursor:pointer;padding:0;z-index:4}#theme-btn svg{width:24px;height:24px}#theme-btn .moon{display:none}html.dark #theme-btn .sun{display:none}html.dark #theme-btn .moon{display:block}
+}</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/><style id="mld-theme-css">#theme-btn{margin-right:-12px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--color-black);cursor:pointer;padding:0;z-index:4}#theme-btn svg{width:24px;height:24px}#theme-btn .moon{display:none}html.dark #theme-btn .sun{display:none}html.dark #theme-btn .moon{display:block}
 html.dark{color-scheme:dark;--color-white:rgb(32 29 39);--color-black:rgb(255 255 255);--color-black-light:rgb(242 242 242);--color-grey:rgb(48 48 48);--color-white-hover:rgb(48 48 48)}
 html.dark body{background-color:rgb(32 29 39)}
 html.dark .cramk3n{background-color:#201d2769}
 html.dark .c1lyty7y{filter:grayscale(100%) invert(1)}
-@media(max-width:767px){.cyhvnff{font-size:1em}.mld-stat-label{font-size:1em}}</style>
+@media(max-width:767px){.cyhvnff{font-size:1em}.mld-stat-label{font-size:1em}}html.dark .c1ird3ev{color:var(--color-black)}html.dark #hero-calendly{background-color:var(--color-accent-hover);color:#fff}html.dark #hero-calendly path{fill:#fff}@media(min-width:768px){section:has(#hero-calendly) .c1pva3vi{text-align:left}section:has(#hero-calendly) .crhqvzu{justify-content:flex-start}}#theme-btn-li{display:flex;align-items:center}</style>
 <script>(function(){try{if(localStorage.getItem('mld-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}})();</script>
 <script>(function(){
-function make(){
- if(document.getElementById('theme-btn'))return;
+function place(){
+ var t=document.getElementById('theme-btn');
+ if(!t)return;
+ var desktop=window.matchMedia('(min-width:768px)').matches;
+ var navUl=document.querySelector('#menu nav ul');
  var b=document.getElementById('burger-btn');
- if(!b||!b.parentElement)return;
- var t=document.createElement('button');
- t.id='theme-btn';t.type='button';t.setAttribute('aria-label','Toggle dark mode');
- t.innerHTML='<svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.2 2.2M16.9 16.9l2.2 2.2M19.1 4.9l-2.2 2.2M7.1 16.9l-2.2 2.2"></path></svg><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>';
- t.addEventListener('click',function(){var d=document.documentElement.classList.toggle('dark');try{localStorage.setItem('mld-theme',d?'dark':'light')}catch(e){}});
- b.parentElement.insertBefore(t,b);
+ var oldLi=document.getElementById('theme-btn-li');
+ if(desktop&&navUl){
+  if(t.parentElement&&t.parentElement.id==='theme-btn-li')return;
+  var li=document.createElement('li');li.id='theme-btn-li';li.className='w-list-item';
+  li.appendChild(t);navUl.appendChild(li);
+  if(oldLi&&oldLi!==li)oldLi.remove();
+ } else if(b&&b.parentElement){
+  if(t.nextElementSibling===b)return;
+  b.parentElement.insertBefore(t,b);
+  if(oldLi)oldLi.remove();
+ }
+}
+function make(){
+ if(!document.getElementById('theme-btn')){
+  var b=document.getElementById('burger-btn');
+  if(!b||!b.parentElement)return;
+  var t=document.createElement('button');
+  t.id='theme-btn';t.type='button';t.setAttribute('aria-label','Toggle dark mode');
+  t.innerHTML='<svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.2 2.2M16.9 16.9l2.2 2.2M19.1 4.9l-2.2 2.2M7.1 16.9l-2.2 2.2"></path></svg><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>';
+  t.addEventListener('click',function(){var d=document.documentElement.classList.toggle('dark');try{localStorage.setItem('mld-theme',d?'dark':'light')}catch(e){}});
+  b.parentElement.insertBefore(t,b);
+ }
+ place();
+ window.addEventListener('resize',place);
 }
 if(document.readyState!=='loading')make();else document.addEventListener('DOMContentLoaded',make);
 try{new MutationObserver(function(){make()}).observe(document.documentElement,{childList:true,subtree:true})}catch(e){setInterval(make,1000)}
@@ -365,4 +386,4 @@ try{new MutationObserver(function(){make()}).observe(document.documentElement,{c
   });
 </script>
 
-<script src="https://analytics.ahrefs.com/analytics.js" data-key="sXKxpiqac9+Fm0lxI9sfzw" defer="true"></script></div></div></div><script id="vike_pageContext" type="application/json">{"_urlRewrite":null,"pageId":"/pages/work/titan-ad-campaigns","routeParams":{},"data":{"url":"https://url/work/titan-ad-campaigns","system":{"params":{},"search":{},"origin":"https://url","pathname":"/work/titan-ad-campaigns"},"resources":{},"pageMeta":{"title":"Titan Ad Campaigns Case Study: Advertisement Graphics for Titan Poker and Titan Bet","description":"Explore the Titan Ad Campaigns case study, featuring advertisement graphics designed for Titan Poker and Titan Bet. Learn how visual design boosts brand impact.","excludePageFromSearch":false,"language":"en-US","socialImageAssetName":"titanad-cover_HyWE5hAymT2y--BEY4KhM.webp","socialImageUrl":"!undefined","status":"!undefined","redirect":"","content":"!undefined","custom":[]}}}</script><script id="vike_globalContext" type="application/json">{}</script><script src="/assets/entries/entry-server-routing.i8251787.js" type="module" async></script><link rel="modulepreload" href="/assets/entries/pages_work_titan-ad-campaigns.ec844ff5.js" as="script" type="text/javascript"><link rel="modulepreload" href="/assets/chunks/chunk-Bb1wwBQE.js" as="script" type="text/javascript"><link rel="modulepreload" href="/assets/chunks/chunk-DAP4CVYZ.js" as="script" type="text/javascript"><link rel="modulepreload" href="/assets/chunks/chunk-B-YjpIJX.js" as="script" type="text/javascript"></body></html>
+<script src="https://analytics.ahrefs.com/analytics.js" data-key="sXKxpiqac9+Fm0lxI9sfzw" defer="true"></script></div></div></div><script id="vike_pageContext" type="application/json">{"_urlRewrite":null,"pageId":"/pages/work/titan-ad-campaigns","routeParams":{},"data":{"url":"https://url/work/titan-ad-campaigns","system":{"params":{},"search":{},"origin":"https://url","pathname":"/work/titan-ad-campaigns"},"resources":{},"pageMeta":{"title":"Titan Ad Campaigns Case Study: Advertisement Graphics for Titan Poker and Titan Bet","description":"Explore the Titan Ad Campaigns case study, featuring advertisement graphics designed for Titan Poker and Titan Bet. Learn how visual design boosts brand impact.","excludePageFromSearch":false,"language":"en-US","socialImageAssetName":"titanad-cover_HyWE5hAymT2y--BEY4KhM.webp","socialImageUrl":"!undefined","status":"!undefined","redirect":"","content":"!undefined","custom":[]}}}</script><script id="vike_globalContext" type="application/json">{}</script><script src="/assets/entries/entry-server-routing.jadcb047.js" type="module" async></script><link rel="modulepreload" href="/assets/entries/pages_work_titan-ad-campaigns.ec844ff5.js" as="script" type="text/javascript"><link rel="modulepreload" href="/assets/chunks/chunk-Bb1wwBQE.js" as="script" type="text/javascript"><link rel="modulepreload" href="/assets/chunks/chunk-DAP4CVYZ.js" as="script" type="text/javascript"><link rel="modulepreload" href="/assets/chunks/chunk-B-YjpIJX.js" as="script" type="text/javascript"></body></html>
