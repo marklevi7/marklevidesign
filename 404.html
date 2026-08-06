@@ -33,8 +33,28 @@ a {
   text-decoration: underline;
   text-underline-offset: 4px;
 }
+@media(max-width:767px){.cyhvnff{font-size:1em}.mld-stat-label{font-size:1em}}</style>
+<style id="mld-theme-css">#theme-btn{width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--color-black);cursor:pointer;padding:0;z-index:4}#theme-btn svg{width:24px;height:24px}#theme-btn .moon{display:none}html.dark #theme-btn .sun{display:none}html.dark #theme-btn .moon{display:block}
+html.dark{color-scheme:dark;--color-white:rgb(32 29 39);--color-black:rgb(255 255 255);--color-black-light:rgb(242 242 242);--color-grey:rgb(48 48 48);--color-white-hover:rgb(48 48 48)}
+html.dark body{background-color:rgb(32 29 39)}
+html.dark .cramk3n{background-color:#201d2769}
+html.dark .c1lyty7y{filter:grayscale(100%) invert(1)}
 </style>
-</head>
+<script>(function(){try{if(localStorage.getItem('mld-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}})();</script>
+<script>(function(){
+function make(){
+ if(document.getElementById('theme-btn'))return;
+ var b=document.getElementById('burger-btn');
+ if(!b||!b.parentElement)return;
+ var t=document.createElement('button');
+ t.id='theme-btn';t.type='button';t.setAttribute('aria-label','Toggle dark mode');
+ t.innerHTML='<svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.2 2.2M16.9 16.9l2.2 2.2M19.1 4.9l-2.2 2.2M7.1 16.9l-2.2 2.2"></path></svg><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>';
+ t.addEventListener('click',function(){var d=document.documentElement.classList.toggle('dark');try{localStorage.setItem('mld-theme',d?'dark':'light')}catch(e){}});
+ b.parentElement.insertBefore(t,b);
+}
+if(document.readyState!=='loading')make();else document.addEventListener('DOMContentLoaded',make);
+try{new MutationObserver(function(){make()}).observe(document.documentElement,{childList:true,subtree:true})}catch(e){setInterval(make,1000)}
+})();</script></head>
 <body>
 <div class="wrap">
 <h1>404</h1>
