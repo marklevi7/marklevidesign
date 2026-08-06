@@ -21,3 +21,9 @@ HTML is cached ~10 min by the CDN; renamed assets show up as soon as the HTML re
 ## Design system (hard rule)
 
 The site has a token system: colors (`--color-black`, `--color-black-light`, `--color-grey`, `--color-white`, `--color-accent`), gaps (`--gap-xs/s/m/l/xl/section`), radii (`--border-radius-s/m`), fonts (DM Sans, DM Mono). **Never style with values outside these tokens. Never invent new tokens. Changing a token's value requires the owner's explicit approval.** Blue (`--color-accent`) is reserved for CTAs. Yellow appears only in the hero stars.
+
+## Next session: show this first
+
+Plan: port animations from these two prior projects. Show links to owner before other work.
+1. https://claude.ai/code/session_01MKEA6RrcTgMrCcT2XdGLLF
+2. MLD website 2026 (David)
