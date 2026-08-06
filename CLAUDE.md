@@ -17,3 +17,7 @@ HTML is cached ~10 min by the CDN; renamed assets show up as soon as the HTML re
 
 - `old-home/` is an archived version of the homepage — leave it untouched unless asked.
 - Site-wide styles (e.g. the logo carousel `scroll-x` animation) are inlined in every page's HTML, so global tweaks mean editing all pages (plus their bundles if the value also lives there).
+
+## Design system (hard rule)
+
+The site has a token system: colors (`--color-black`, `--color-black-light`, `--color-grey`, `--color-white`, `--color-accent`), gaps (`--gap-xs/s/m/l/xl/section`), radii (`--border-radius-s/m`), fonts (DM Sans, DM Mono). **Never style with values outside these tokens. Never invent new tokens. Changing a token's value requires the owner's explicit approval.** Blue (`--color-accent`) is reserved for CTAs. Yellow appears only in the hero stars.
