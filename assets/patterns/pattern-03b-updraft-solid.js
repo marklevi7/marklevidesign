@@ -194,7 +194,41 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     if ('ResizeObserver' in window) new ResizeObserver(function () { place(d); }).observe(hero);
   }
 
-  function boot() { requestAnimationFrame(function () { requestAnimationFrame(mount); }); }
+  // The "$167M" stat card is styled like the hero proof blob — translucent, so
+  // the same shader can run behind it and read through. Same trick as the hero:
+  // the canvas lives in its own body-level element at z-index -1, positioned
+  // over the card in document coordinates, so React's DOM is never touched.
+  // Clipped to the card's radius so it doesn't spill past the rounded corners.
+  function cardEl() { return document.querySelector('.mld-stat--accent'); }
+
+  function placeCard(host) {
+    var c = cardEl();
+    if (!c) return;
+    var r = c.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    host.style.top = Math.round(r.top + window.scrollY) + 'px';
+    host.style.left = Math.round(r.left + window.scrollX) + 'px';
+    host.style.width = Math.round(r.width) + 'px';
+    host.style.height = Math.round(r.height) + 'px';
+  }
+
+  function mountCard() {
+    if (document.querySelector('.mld-card-pattern')) return;
+    var c = cardEl();
+    if (!c) return;
+    var d = document.createElement('div');
+    d.className = 'mld-pattern mld-card-pattern';
+    document.body.appendChild(d);
+    placeCard(d);
+    if (!init(d)) { d.remove(); return; }
+    var replace = function () { placeCard(d); };
+    window.addEventListener('resize', replace, { passive: true });
+    if ('ResizeObserver' in window) new ResizeObserver(replace).observe(document.body);
+    // Late web fonts and images shift the section; re-measure a few times.
+    [200, 800, 2000].forEach(function (ms) { setTimeout(replace, ms); });
+  }
+
+  function boot() { requestAnimationFrame(function () { requestAnimationFrame(function () { mount(); mountCard(); }); }); }
   if (document.readyState === 'complete') boot();
   else window.addEventListener('load', boot);
 })();
