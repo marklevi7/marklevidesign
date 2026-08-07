@@ -41,7 +41,7 @@ function position(){
 function boot(){requestAnimationFrame(function(){requestAnimationFrame(build)});}
 if(document.readyState==='complete')boot();
 else window.addEventListener('load',boot);
-})();</script><script data-cfasync="false" src="/assets/patterns/pattern-03b-updraft-solid.js" defer></script><script data-cfasync="false" id="mld-scrollhdr">(function(){var d=document.documentElement;function u(){if(window.scrollY>8)d.classList.add("mld-scrolled");else d.classList.remove("mld-scrolled");}u();window.addEventListener("scroll",u,{passive:true});})();</script><script data-cfasync="false" id="mld-autorefresh" data-build="3f5d4ee417">(function(){
+})();</script><script data-cfasync="false" src="/assets/patterns/pattern-03b-updraft-solid.js" defer></script><script data-cfasync="false" id="mld-scrollhdr">(function(){var d=document.documentElement;function u(){if(window.scrollY>8)d.classList.add("mld-scrolled");else d.classList.remove("mld-scrolled");}u();window.addEventListener("scroll",u,{passive:true});})();</script><script data-cfasync="false" id="mld-autorefresh" data-build="01f5351e75">(function(){
 var s=document.getElementById('mld-autorefresh');if(!s)return;var id=s.getAttribute('data-build');if(!id)return;var busy=false;
 var lastTouch=0;
 ['pointerdown','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,function(){lastTouch=Date.now();},{passive:true,capture:true});});
@@ -442,7 +442,11 @@ window.__mldMenuOpen=isOpen;
 <script data-cfasync="false" src="https://analytics.ahrefs.com/analytics.js" data-key="sXKxpiqac9+Fm0lxI9sfzw" defer="true"></script></div></div></div><div class="w-html-embed"><script data-cfasync="false" defer src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
 <script data-cfasync="false">
-  document.addEventListener("DOMContentLoaded", () => {
+  /* After hydration, not DOMContentLoaded: loop:true clones slides, and
+     mutating the DOM before React hydrates makes the markup mismatch, which
+     makes React discard the whole root — taking the menu handlers with it. */
+  (function(go){ if(document.readyState==="complete") requestAnimationFrame(go);
+    else window.addEventListener("load", function(){ requestAnimationFrame(go); }); })(() => {
     new Swiper("#swiper-wrapper", {
       centeredSlides: true,
       slidesPerView: 1,
