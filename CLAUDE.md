@@ -35,3 +35,5 @@ Every page carries `<meta name="mld-build">` plus an inline `mld-autorefresh` sc
 **After editing any page HTML, run `python3 tools/stamp-build.py`** so the build ids change — otherwise the auto-refresh has nothing to detect.
 
 Deploys can also fail: GitHub Pages sometimes leaves a run stuck in `deployment_queued` until it times out, and the site then silently keeps serving the previous version. If a change is missing from the live site, check the Pages workflow runs before assuming a cache problem; the fix is to re-run the deploy (a new commit on `main` triggers one).
+
+During a GitHub Actions/Pages outage the `build` job can succeed while the `deploy` job sits queued and is eventually cancelled — the run looks half-green but nothing ships. Check https://www.githubstatus.com, and once Actions is operational again push a fresh commit to `main`, since the API rerun endpoint is not available to this integration.
