@@ -57,4 +57,15 @@ Names are ours where the handoff had none. Owner previews these one at a time in
 12. **Boxed Lines** — per-line backdrop, `box-decoration-break: clone`
 13. **Depth Gradient** — body radial gradient
 
+### Hero pattern variants and how to switch
+
+The hero loads exactly one pattern file via a `<script src>` in `index.html`.
+Switching or reverting is that one line — the files stay on disk:
+
+- `assets/patterns/pattern-01-halftone-ripple.js` — pattern 1, sparse dots
+- `assets/patterns/pattern-03-halftone-updraft.js` — pattern 3, round dots (**undo target for the square variant**)
+- `assets/patterns/pattern-03b-updraft-solid.js` — pattern 3 with square cells, currently live
+
+Round cells cap near 20% coverage (`maskCircle` radius is `sqrt(cov) * 0.25`), so they can never read as solid; square cells fill completely, which is the knob for "darker in the dark areas". Other density levers, roughly strongest first: dot radius, `density`, canvas `alpha`, `pixelSize`, then the noise curve in the shader.
+
 Implementation notes: the handoff drives patterns 1–4 through three.js, which it uses only to draw a fullscreen quad — port shaders onto raw WebGL2 instead (see `assets/patterns/`) so the site takes no CDN dependency. Every pattern must be theme-reactive: light and dark differ in both colour and motion. Mount patterns by script, never in markup, or React hydration drops them.
