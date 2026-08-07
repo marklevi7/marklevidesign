@@ -25,7 +25,10 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
   // settings: a stronger alpha to stay visible at that size, a lower density so
   // the field reads as scattered pixels instead of solid slabs, and no vertical
   // ramp — the hero's bottom-weighting has nothing to say inside a 180px box.
-  var CARD = { alpha: 0.45, density: 0.55, gradientY: 0 };
+  // alpha is per-theme here: halving it in light mode moves the pixels half
+  // way back to the card surface, which is what "50% lighter" means. Dark
+  // mode keeps 0.45 - there, weaker ink would read as darker, not lighter.
+  var CARD = { alpha: { light: 0.225, dark: 0.45 }, density: 0.55, gradientY: 0 };
 
   function isDark() { return document.documentElement.classList.contains('dark'); }
 
@@ -92,7 +95,9 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
       gl.uniform1f(U.uRippleSpeed, t.rippleSpeed);
       gl.uniform1f(U.uFlowY, t.flowY);
       gl.uniform1f(U.uGradientY, over && over.gradientY != null ? over.gradientY : t.gradientY);
-      canvas.style.opacity = over && over.alpha != null ? over.alpha : t.alpha;
+      var oa = over && over.alpha;
+      if (oa && typeof oa === 'object') oa = isDark() ? oa.dark : oa.light;
+      canvas.style.opacity = oa != null ? oa : t.alpha;
       return t;
     }
 
