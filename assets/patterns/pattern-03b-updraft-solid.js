@@ -155,13 +155,27 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
   // subtree before hydration makes the markup mismatch and React throws the
   // server render away. So: mount only after load, and into our own element
   // appended to <body>, positioned over the hero in document coordinates.
+  // Runs from just above the header down to the "Trusted by" heading, so the
+  // field passes behind the proof blob instead of stopping short of it.
+  function endEl() {
+    var hs = document.querySelectorAll('h2');
+    for (var i = 0; i < hs.length; i++) {
+      if (/Trusted by/i.test(hs[i].textContent)) return hs[i];
+    }
+    return null;
+  }
+
   function place(host) {
     var hero = heroEl();
     if (!hero) return;
     var r = hero.getBoundingClientRect();
-    var top = r.top + window.scrollY, up = 90, down = 72;
-    host.style.top = Math.round(top - up) + 'px';
-    host.style.height = Math.round(r.height + up + down) + 'px';
+    var top = r.top + window.scrollY - 90;
+    var end = endEl();
+    var bottom = end
+      ? end.getBoundingClientRect().top + window.scrollY - 8
+      : r.bottom + window.scrollY + 72;
+    host.style.top = Math.round(top) + 'px';
+    host.style.height = Math.max(Math.round(bottom - top), 200) + 'px';
   }
 
   function mount() {
