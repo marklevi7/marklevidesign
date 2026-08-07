@@ -15,7 +15,7 @@
 
   // Light and dark get different ink AND different motion, per design direction.
   var THEMES = {
-    light: { ink: [0.13, 0.11, 0.15], density: 0.90, fbmSpeed: 0.05, rippleSpeed: 0.30, autoRippleMs: 4500, alpha: 0.33, flowY: 0.030, gradientY: 0.10 },
+    light: { ink: [0.13, 0.11, 0.15], density: 0.90, fbmSpeed: 0.05, rippleSpeed: 0.30, autoRippleMs: 4500, alpha: 0.20, flowY: 0.030, gradientY: 0.10 },
     dark:  { ink: [1.00, 1.00, 1.00], density: 0.85, fbmSpeed: 0.08, rippleSpeed: 0.42, autoRippleMs: 3200, alpha: 0.33, flowY: 0.045, gradientY: 0.13 }
   };
     // shape 0 = square: a lit cell fills completely, so dense areas reach solid
