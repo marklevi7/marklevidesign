@@ -75,14 +75,14 @@ function make(){
 }
 if(document.readyState!=='loading')make();else document.addEventListener('DOMContentLoaded',make);
 try{new MutationObserver(function(){make()}).observe(document.documentElement,{childList:true,subtree:true})}catch(e){setInterval(make,1000)}
-})();</script><script data-cfasync="false" id="mld-autorefresh">(function(){
-var m=document.querySelector('meta[name="mld-build"]');if(!m)return;var id=m.content;var busy=false;
+})();</script><script data-cfasync="false" id="mld-scrollhdr">(function(){var d=document.documentElement;function u(){if(window.scrollY>8)d.classList.add("mld-scrolled");else d.classList.remove("mld-scrolled");}u();window.addEventListener("scroll",u,{passive:true});})();</script><script data-cfasync="false" id="mld-autorefresh" data-build="39e79c22ba">(function(){
+var s=document.getElementById('mld-autorefresh');if(!s)return;var id=s.getAttribute('data-build');if(!id)return;var busy=false;
 function check(){
  if(busy)return;busy=true;
  fetch(location.pathname+(location.search?location.search+'&':'?')+'_cb='+Date.now(),{cache:'no-store'})
   .then(function(r){return r.text()})
   .then(function(t){
-    var f=t.match(/name="mld-build" content="([^"]+)"/);
+    var f=t.match(/data-build="([0-9a-f]{10})"/);
     if(!f||f[1]===id)return;
     var k='mld-reloaded-'+f[1];
     try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(e){}
@@ -94,7 +94,7 @@ function check(){
 setTimeout(check,2500);
 setInterval(check,60000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
-})();</script><script data-cfasync="false" id="mld-scrollhdr">(function(){var d=document.documentElement;function u(){if(window.scrollY>8)d.classList.add("mld-scrolled");else d.classList.remove("mld-scrolled");}u();window.addEventListener("scroll",u,{passive:true});})();</script></head>
+})();</script></head>
 <body>
 <div class="wrap">
 <h1>404</h1>
