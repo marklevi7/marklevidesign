@@ -22,6 +22,34 @@ HTML is cached ~10 min by the CDN; renamed assets show up as soon as the HTML re
 
 The site has a token system: colors (`--color-black`, `--color-black-light`, `--color-grey`, `--color-white`, `--color-accent`), gaps (`--gap-xs/s/m/l/xl/section`), radii (`--border-radius-s/m`), fonts (DM Sans, DM Mono). **Never style with values outside these tokens. Never invent new tokens. Changing a token's value requires the owner's explicit approval.** Blue (`--color-accent`) is reserved for CTAs. Yellow appears only in the hero stars.
 
+Tokens live in `assets/static/app_generated_index-*.css`, but four of them are also
+hardcoded in each page's inline dark-mode block (`--color-grey`, `--color-white-hover`,
+and `--color-black-light` scoped to `footer` and `.mld-stats`). A token change has to
+touch both places or dark mode drifts from light.
+
+Approved token changes so far:
+
+- `--color-black-light`: `rgb(48 48 48)` → `rgb(48 44 58)`. The old value was a neutral
+  grey unrelated to the rest of the palette; the new one is `--color-black`
+  (`rgb(32 29 39)`) lightened by the same factor, so surfaces built on it — stat cards,
+  footer, the dark-mode proof blob — carry the background's purple cast instead of
+  reading as a foreign grey.
+
+## Header controls
+
+The theme toggle and hamburger each sit in a 48px circle at 90% opacity of
+`--color-white`, so they stay legible over the hero pattern in either theme. The
+hamburger bars are 33.6px (30% narrower than the button) and the theme icon is 26px —
+picked so the two read at the same weight.
+
+The bars are `#burger-btn::before/::after` from an inline stylesheet that comes *after*
+the `mld-theme-css` block, so overriding their width needs the extra `html` specificity.
+The open-state X is a rotation about each bar's center and stays correct at any width.
+
+On desktop the theme button is placed by `mld-theme-js` 8px after the last nav link,
+with a 56px lane reserved on `#menu`. Pinning it to the viewport edge instead makes it
+overlap "Contact" below ~1400px.
+
 ## Next session: show this first
 
 Plan: port animations from these two prior projects. Show links to owner before other work.
