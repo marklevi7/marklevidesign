@@ -15,8 +15,8 @@
 
   // Light and dark get different ink AND different motion, per design direction.
   var THEMES = {
-    light: { ink: [0.13, 0.11, 0.15], density: 0.10, fbmSpeed: 0.05, rippleSpeed: 0.30, autoRippleMs: 4500, alpha: 0.50, flowY: 0.030, gradientY: 0.10 },
-    dark:  { ink: [1.00, 1.00, 1.00], density: 0.17, fbmSpeed: 0.08, rippleSpeed: 0.42, autoRippleMs: 3200, alpha: 0.60, flowY: 0.045, gradientY: 0.13 }
+    light: { ink: [0.13, 0.11, 0.15], density: 0.90, fbmSpeed: 0.05, rippleSpeed: 0.30, autoRippleMs: 4500, alpha: 0.50, flowY: 0.030, gradientY: 0.10 },
+    dark:  { ink: [1.00, 1.00, 1.00], density: 0.85, fbmSpeed: 0.08, rippleSpeed: 0.42, autoRippleMs: 3200, alpha: 0.60, flowY: 0.045, gradientY: 0.13 }
   };
     // shape 0 = square: a lit cell fills completely, so dense areas reach solid
   // ink. shape 1 = circle (pattern 03) tops out near 20% cell coverage.
@@ -155,9 +155,12 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
   // subtree before hydration makes the markup mismatch and React throws the
   // server render away. So: mount only after load, and into our own element
   // appended to <body>, positioned over the hero in document coordinates.
-  // Runs from just above the header down to the "Trusted by" heading, so the
-  // field passes behind the proof blob instead of stopping short of it.
-  function endEl() {
+  // Runs from the top of the page down to the logo strip: everything above
+  // the strip carries the pattern, the strip itself stays clean. Measured
+  // from the strip element so it stays correct if content above it changes.
+  function stripEl() {
+    var list = document.querySelector('.clients-list');
+    if (list) return list.closest('div') || list;
     var hs = document.querySelectorAll('h2');
     for (var i = 0; i < hs.length; i++) {
       if (/Trusted by/i.test(hs[i].textContent)) return hs[i];
@@ -169,10 +172,10 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     var hero = heroEl();
     if (!hero) return;
     var r = hero.getBoundingClientRect();
-    var top = r.top + window.scrollY - 90;
-    var end = endEl();
-    var bottom = end
-      ? end.getBoundingClientRect().top + window.scrollY - 8
+    var top = 0;                              // from the very top of the page
+    var strip = stripEl();
+    var bottom = strip
+      ? strip.getBoundingClientRect().top + window.scrollY
       : r.bottom + window.scrollY + 72;
     host.style.top = Math.round(top) + 'px';
     host.style.height = Math.max(Math.round(bottom - top), 200) + 'px';
