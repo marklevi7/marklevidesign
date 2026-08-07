@@ -37,3 +37,24 @@ Every page carries `<meta name="mld-build">` plus an inline `mld-autorefresh` sc
 Deploys can also fail: GitHub Pages sometimes leaves a run stuck in `deployment_queued` until it times out, and the site then silently keeps serving the previous version. If a change is missing from the live site, check the Pages workflow runs before assuming a cache problem; the fix is to re-run the deploy (a new commit on `main` triggers one).
 
 During a GitHub Actions/Pages outage the `build` job can succeed while the `deploy` job sits queued and is eventually cancelled — the run looks half-green but nothing ships. Check https://www.githubstatus.com, and once Actions is operational again push a fresh commit to `main`, since the API rerun endpoint is not available to this integration.
+
+## Pattern list (from the alumot-pattern handoff)
+
+Source: https://raw.githack.com/marklevi7/alumot-pattern/9a304e2e72914d82eda029c100c5c474483a6cd7/handoff.html
+Names are ours where the handoff had none. Owner previews these one at a time in the hero.
+
+1. **Halftone Ripple** — dither dot field, hero preset *(currently live)*
+2. **Halftone Dense** — same shader, denser field (banner preset)
+3. **Halftone Updraft** — bottom-weighted density, upward drift (final preset)
+4. **Wave Strip** — wave dither strip
+5. **Node Constellation** — AI-node loader
+6. **Snowball** — pure-CSS loader
+7. **Tier Sigils** — inline SVG with SMIL animations
+8. **Shine Sweep** — periodic CTA shine
+9. **Scramble Badge** — badge pop-in + digit scramble
+10. **Scroll Reveal** — reveal on scroll
+11. **Difference Wordmark** — `mix-blend-mode: difference`
+12. **Boxed Lines** — per-line backdrop, `box-decoration-break: clone`
+13. **Depth Gradient** — body radial gradient
+
+Implementation notes: the handoff drives patterns 1–4 through three.js, which it uses only to draw a fullscreen quad — port shaders onto raw WebGL2 instead (see `assets/patterns/`) so the site takes no CDN dependency. Every pattern must be theme-reactive: light and dark differ in both colour and motion. Mount patterns by script, never in markup, or React hydration drops them.
