@@ -21,6 +21,11 @@
     // shape 0 = square: a lit cell fills completely, so dense areas reach solid
   // ink. shape 1 = circle (pattern 03) tops out near 20% cell coverage.
 var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
+  // The stat card is a small window onto the same field, so it needs its own
+  // settings: a stronger alpha to stay visible at that size, a lower density so
+  // the field reads as scattered pixels instead of solid slabs, and no vertical
+  // ramp — the hero's bottom-weighting has nothing to say inside a 180px box.
+  var CARD = { alpha: 0.45, density: 0.55, gradientY: 0 };
 
   function isDark() { return document.documentElement.classList.contains('dark'); }
 
@@ -33,7 +38,7 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     return sh;
   }
 
-  function init(container) {
+  function init(container, over) {
     var canvas = document.createElement('canvas');
     canvas.setAttribute('aria-hidden', 'true');
     container.appendChild(canvas);
@@ -82,12 +87,12 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
       var t = THEMES[isDark() ? 'dark' : 'light'];
       gl.useProgram(prog);
       gl.uniform3f(U.uColor, t.ink[0], t.ink[1], t.ink[2]);
-      gl.uniform1f(U.uDensity, t.density);
+      gl.uniform1f(U.uDensity, over && over.density != null ? over.density : t.density);
       gl.uniform1f(U.uFbmSpeed, t.fbmSpeed);
       gl.uniform1f(U.uRippleSpeed, t.rippleSpeed);
       gl.uniform1f(U.uFlowY, t.flowY);
-      gl.uniform1f(U.uGradientY, t.gradientY);
-      canvas.style.opacity = t.alpha;
+      gl.uniform1f(U.uGradientY, over && over.gradientY != null ? over.gradientY : t.gradientY);
+      canvas.style.opacity = over && over.alpha != null ? over.alpha : t.alpha;
       return t;
     }
 
@@ -220,7 +225,10 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     d.className = 'mld-pattern mld-card-pattern';
     document.body.appendChild(d);
     placeCard(d);
-    if (!init(d)) { d.remove(); return; }
+    if (!init(d, CARD)) { d.remove(); return; }
+    // The card only goes transparent once the canvas is actually running,
+    // so a browser without WebGL2 keeps a solid grey card instead of a hole.
+    document.documentElement.classList.add('mld-cardfx');
     var replace = function () { placeCard(d); };
     window.addEventListener('resize', replace, { passive: true });
     if ('ResizeObserver' in window) new ResizeObserver(replace).observe(document.body);
