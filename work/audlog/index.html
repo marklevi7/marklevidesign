@@ -3,7 +3,7 @@
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "Mark Levi Design"
-}</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/><style id="mld-theme-css">:root{--mld-blur:15px}#mld-theme-host{position:fixed;z-index:5;transform:translateY(-50%);display:flex;align-items:center;pointer-events:auto}#theme-btn{width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--color-black);cursor:pointer;padding:0}#theme-btn svg{width:24px;height:24px}#theme-btn .moon{display:none}html.dark #theme-btn .sun{display:none}html.dark #theme-btn .moon{display:block}
+}</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/><style id="mld-theme-css">:root{--mld-blur:10.5px}#mld-theme-host{position:fixed;z-index:5;transform:translateY(-50%);display:flex;align-items:center;pointer-events:auto}#theme-btn{width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--color-black);cursor:pointer;padding:0}#theme-btn svg{width:24px;height:24px}#theme-btn .moon{display:none}html.dark #theme-btn .sun{display:none}html.dark #theme-btn .moon{display:block}
 html.dark{color-scheme:dark;--color-white:rgb(32 29 39);--color-black:rgb(255 255 255);--color-black-light:rgb(242 242 242);--color-grey:rgb(48 48 48);--color-white-hover:rgb(48 48 48)}
 html.dark body{background-color:rgb(32 29 39)}
 html.dark .cramk3n{background-color:#201d2769}
@@ -41,10 +41,16 @@ function position(){
 function boot(){requestAnimationFrame(function(){requestAnimationFrame(build)});}
 if(document.readyState==='complete')boot();
 else window.addEventListener('load',boot);
-})();</script><script data-cfasync="false" id="mld-scrollhdr">(function(){var d=document.documentElement;function u(){if(window.scrollY>8)d.classList.add("mld-scrolled");else d.classList.remove("mld-scrolled");}u();window.addEventListener("scroll",u,{passive:true});})();</script><script data-cfasync="false" id="mld-autorefresh" data-build="d73b688b57">(function(){
+})();</script><script data-cfasync="false" id="mld-scrollhdr">(function(){var d=document.documentElement;function u(){if(window.scrollY>8)d.classList.add("mld-scrolled");else d.classList.remove("mld-scrolled");}u();window.addEventListener("scroll",u,{passive:true});})();</script><script data-cfasync="false" id="mld-autorefresh" data-build="58e9da7930">(function(){
 var s=document.getElementById('mld-autorefresh');if(!s)return;var id=s.getAttribute('data-build');if(!id)return;var busy=false;
+var lastTouch=0;
+['pointerdown','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,function(){lastTouch=Date.now();},{passive:true,capture:true});});
 function check(){
- if(busy)return;busy=true;
+ if(busy)return;
+ var m=document.getElementById('menu');
+ if(m&&m.classList.contains('active'))return;      /* menu open */
+ if(Date.now()-lastTouch<15000)return;                 /* just interacted */
+ busy=true;
  fetch(location.pathname+(location.search?location.search+'&':'?')+'_cb='+Date.now(),{cache:'no-store'})
   .then(function(r){return r.text()})
   .then(function(t){
@@ -60,6 +66,35 @@ function check(){
 setTimeout(check,2500);
 setInterval(check,60000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
+})();</script><script data-cfasync="false" id="mld-menu-guard">(function(){
+/* Safety net. The menu is React-driven; if hydration is ever disturbed (an
+   edge rewrite, a slow script, a GPU stall) its handler can be lost and the
+   burger goes dead. This attaches no DOM, only listeners, so it cannot itself
+   upset hydration — and it only acts if React did not. */
+function menu(){return document.getElementById('menu');}
+function burger(){return document.getElementById('burger-btn');}
+function isOpen(){var m=menu();return !!m&&m.classList.contains('active');}
+function setOpen(open){
+  var m=menu(),b=burger();
+  if(!m||!b)return;
+  if(open){m.classList.add('active');m.style.display='flex';}
+  else{m.classList.remove('active');m.style.display='';}
+  b.setAttribute('aria-expanded',open?'true':'false');
+}
+document.addEventListener('click',function(e){
+  var b=burger();
+  if(!b)return;
+  var t=e.target;
+  if(t!==b&&!(b.contains&&b.contains(t)))return;
+  var was=isOpen();
+  setTimeout(function(){ if(isOpen()===was) setOpen(!was); },140);
+},true);
+/* close when a menu link is chosen */
+document.addEventListener('click',function(e){
+  var a=e.target&&e.target.closest?e.target.closest('#menu a'):null;
+  if(a)setTimeout(function(){setOpen(false);},60);
+},true);
+window.__mldMenuOpen=isOpen;
 })();</script></head><body class="w-body c378vfu c18vjc2c cjpvn6c c1w0zhu5 c6qzdvu cib8mry c15d4gw5 c13rcgdq c19xgeaq"><div style="display:contents"><div style="display:contents"><header id="header" class="w-box c1axaslz cexlp2z cf4j7ja cdkop3b c161wktu c133kxjn cjszkrr cramk3n cwejz9h c1ct808v cdnocad c17c2ju3 c1waeiwr c1eudh6f cm423ij c1v540lw c1py5xiz chm9ybw ccngwll cuulo1l c19i1beo cuzooc2 c6vfpkd"><a target="_self" class="w-link c18twyqs c8tkwk7 cepa2jq cxbi5i6 c1bbaeac cumm3vs c6neu30 c3rk4bx c13w5p6w c2gctic c1cnfiy1 ct0zxlt c152skzk c17v963i cnff78s cmaf3k3 c1wm8bso cqd831p c1ets202 cr3mqc0 cs2jh8k c1bz28f7 c1imrt47" href="/">Mark Levi Design</a><button type="button" aria-label="Open menu" id="burger-btn" aria-haspopup="menu" aria-expanded="false" class="w-button cr3wo5g c1gl7z2s cnwss7z c1lu7jxy crhqvzu c14ntra6 cnloq56 c414qow ck1md3l c1hfjlmb c188edp1 cnff78s cmaf3k3 c5d08py c1twyp89 c11zexjk"><div class="w-box c13o6v8k cvbdwsl c1wm8bso c1cnfiy1 ct0zxlt c11y0r98"></div></button><div id="menu" role="menu" class="w-box cdnocad c17n0kf7 c17c2ju3 c1cnfiy1 ct0zxlt cjtvcy8 cyrbejq cthoxls cll8z4f csrjh88 c1towu97 c1vgj0kx c1m50r39 cprmjc0 cuulo1l c18qgwkt cvgxd7w c1ck8lpf cm5q7xz c71ps95 c7koket cfpyesg c10fs1iy"><nav class="w-box"><ul class="w-list cxrgosf c15z66dp caxh3jd cdnocad c12kcdfs cnff78s c14slhbm cfpu3rf cz1fzgy cs4enpb c1m50r39 cuulo1l c1a8gtjc"><li class="w-list-item"><a target="_self" class="w-link c18twyqs cn9qqoq c11mlj4j cnbbarl c1bbaeac cumm3vs c6neu30 c3rk4bx c13w5p6w c2gctic c1cnfiy1 ct0zxlt c152skzk c17v963i cqd831p c1ets202 cr3mqc0 cs2jh8k cbs8hq7 c1imrt47" href="/work">Work</a></li><li class="w-list-item"><a target="_self" class="w-link c18twyqs cn9qqoq c11mlj4j cnbbarl c1bbaeac cumm3vs c6neu30 c3rk4bx c13w5p6w c2gctic c1cnfiy1 ct0zxlt c152skzk c17v963i cqd831p c1ets202 cr3mqc0 cs2jh8k cbs8hq7 c1imrt47" href="/articles">Articles</a></li><li class="w-list-item"><a target="_self" class="w-link c18twyqs cn9qqoq c11mlj4j cnbbarl c1bbaeac cumm3vs c6neu30 c3rk4bx c13w5p6w c2gctic c1cnfiy1 ct0zxlt c152skzk c17v963i cqd831p c1ets202 cr3mqc0 cs2jh8k cbs8hq7 c1imrt47" href="/testimonials">Testimonials</a></li><li class="w-list-item"><a target="_self" class="w-link c18twyqs cn9qqoq c11mlj4j cnbbarl c1bbaeac cumm3vs c6neu30 c3rk4bx c13w5p6w c2gctic c1cnfiy1 ct0zxlt c152skzk c17v963i cqd831p c1ets202 cr3mqc0 cs2jh8k cbs8hq7 c1imrt47" href="/about">About</a></li><li class="w-list-item"><a target="_self" class="w-link c18twyqs cn9qqoq c11mlj4j cnbbarl c1bbaeac cumm3vs c6neu30 c3rk4bx c13w5p6w c2gctic c1cnfiy1 ct0zxlt c152skzk c17v963i cqd831p c1ets202 cr3mqc0 cs2jh8k cbs8hq7 c1imrt47" href="/contact">Contact</a></li></ul></nav></div></header><div class="w-html-embed"><style>
   #index-list li::marker {
     font-family: "DM MONO";
