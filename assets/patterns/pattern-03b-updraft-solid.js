@@ -146,22 +146,38 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     return true;
   }
 
-  function mount() {
-    var hero = document.querySelector('#hero-calendly');
-    hero = hero && hero.closest('section');
-    if (!hero || hero.querySelector('.mld-pattern')) return;
-    var d = document.createElement('div');
-    d.className = 'mld-pattern';
-    hero.insertBefore(d, hero.firstChild);
-    if (!init(d)) d.remove();
+  function heroEl() {
+    var cta = document.querySelector('#hero-calendly');
+    return cta && cta.closest('section');
   }
 
-  if (document.readyState !== 'loading') setTimeout(mount, 300);
-  else document.addEventListener('DOMContentLoaded', function () { setTimeout(mount, 300); });
-  // Hydration replaces hero DOM; re-mount if our node is dropped.
-  try {
-    new MutationObserver(function () {
-      if (!document.querySelector('.mld-pattern')) mount();
-    }).observe(document.body, { childList: true, subtree: true });
-  } catch (e) {}
+  // The page is hydrated by React into <body>; injecting into a React-owned
+  // subtree before hydration makes the markup mismatch and React throws the
+  // server render away. So: mount only after load, and into our own element
+  // appended to <body>, positioned over the hero in document coordinates.
+  function place(host) {
+    var hero = heroEl();
+    if (!hero) return;
+    var r = hero.getBoundingClientRect();
+    var top = r.top + window.scrollY, up = 90, down = 72;
+    host.style.top = Math.round(top - up) + 'px';
+    host.style.height = Math.round(r.height + up + down) + 'px';
+  }
+
+  function mount() {
+    if (document.querySelector('.mld-pattern')) return;
+    var hero = heroEl();
+    if (!hero) return;
+    var d = document.createElement('div');
+    d.className = 'mld-pattern';
+    document.body.appendChild(d);
+    place(d);
+    if (!init(d)) { d.remove(); return; }
+    window.addEventListener('resize', function () { place(d); }, { passive: true });
+    if ('ResizeObserver' in window) new ResizeObserver(function () { place(d); }).observe(hero);
+  }
+
+  function boot() { requestAnimationFrame(function () { requestAnimationFrame(mount); }); }
+  if (document.readyState === 'complete') boot();
+  else window.addEventListener('load', boot);
 })();
