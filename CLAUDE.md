@@ -69,3 +69,9 @@ Switching or reverting is that one line — the files stay on disk:
 Round cells cap near 20% coverage (`maskCircle` radius is `sqrt(cov) * 0.25`), so they can never read as solid; square cells fill completely, which is the knob for "darker in the dark areas". Other density levers, roughly strongest first: dot radius, `density`, canvas `alpha`, `pixelSize`, then the noise curve in the shader.
 
 Implementation notes: the handoff drives patterns 1–4 through three.js, which it uses only to draw a fullscreen quad — port shaders onto raw WebGL2 instead (see `assets/patterns/`) so the site takes no CDN dependency. Every pattern must be theme-reactive: light and dark differ in both colour and motion. Mount patterns by script, never in markup, or React hydration drops them.
+
+## The one blur
+
+There is a single blur value, `--mld-blur` (currently 15px), declared next to `#mld-theme-host` in every page's inline styles. It drives **both** the sticky header (once scrolled) and the hero proof blob. If the owner asks to change "the blur", change this one value — both places follow.
+
+The proof blob is deliberately translucent (`color-mix` on `--color-grey`) so the hero pattern reads through it, with `backdrop-filter: blur(var(--mld-blur))` softening what shows through.
