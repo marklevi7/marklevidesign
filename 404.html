@@ -34,7 +34,7 @@ a {
   text-underline-offset: 4px;
 }
 @media(max-width:767px){.cyhvnff{font-size:1em}.mld-stat-label{font-size:1em}}main>section{width:100%;box-sizing:border-box}#header{transition:background-color .25s ease,-webkit-backdrop-filter .25s ease,backdrop-filter .25s ease}html:not(.mld-scrolled) #header{background-color:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}html.mld-scrolled #header{-webkit-backdrop-filter:blur(var(--mld-blur));backdrop-filter:blur(var(--mld-blur))}#header a.w-link[href="/"]{font-size:1.2em}</style>
-<style id="mld-theme-css">:root{--mld-blur:15px}#mld-theme-host{position:fixed;z-index:5;transform:translateY(-50%);display:flex;align-items:center;pointer-events:auto}#theme-btn{width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--color-black);cursor:pointer;padding:0}#theme-btn svg{width:24px;height:24px}#theme-btn .moon{display:none}html.dark #theme-btn .sun{display:none}html.dark #theme-btn .moon{display:block}
+<style id="mld-theme-css">:root{--mld-blur:10.5px}#mld-theme-host{position:fixed;z-index:5;transform:translateY(-50%);display:flex;align-items:center;pointer-events:auto}#theme-btn{width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--color-black);cursor:pointer;padding:0}#theme-btn svg{width:24px;height:24px}#theme-btn .moon{display:none}html.dark #theme-btn .sun{display:none}html.dark #theme-btn .moon{display:block}
 html.dark{color-scheme:dark;--color-white:rgb(32 29 39);--color-black:rgb(255 255 255);--color-black-light:rgb(242 242 242);--color-grey:rgb(48 48 48);--color-white-hover:rgb(48 48 48)}
 html.dark body{background-color:rgb(32 29 39)}
 html.dark .cramk3n{background-color:#201d2769}
@@ -72,10 +72,16 @@ function position(){
 function boot(){requestAnimationFrame(function(){requestAnimationFrame(build)});}
 if(document.readyState==='complete')boot();
 else window.addEventListener('load',boot);
-})();</script><script data-cfasync="false" id="mld-scrollhdr">(function(){var d=document.documentElement;function u(){if(window.scrollY>8)d.classList.add("mld-scrolled");else d.classList.remove("mld-scrolled");}u();window.addEventListener("scroll",u,{passive:true});})();</script><script data-cfasync="false" id="mld-autorefresh" data-build="c3d8808a41">(function(){
+})();</script><script data-cfasync="false" id="mld-scrollhdr">(function(){var d=document.documentElement;function u(){if(window.scrollY>8)d.classList.add("mld-scrolled");else d.classList.remove("mld-scrolled");}u();window.addEventListener("scroll",u,{passive:true});})();</script><script data-cfasync="false" id="mld-autorefresh" data-build="31802701da">(function(){
 var s=document.getElementById('mld-autorefresh');if(!s)return;var id=s.getAttribute('data-build');if(!id)return;var busy=false;
+var lastTouch=0;
+['pointerdown','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,function(){lastTouch=Date.now();},{passive:true,capture:true});});
 function check(){
- if(busy)return;busy=true;
+ if(busy)return;
+ var m=document.getElementById('menu');
+ if(m&&m.classList.contains('active'))return;      /* menu open */
+ if(Date.now()-lastTouch<15000)return;                 /* just interacted */
+ busy=true;
  fetch(location.pathname+(location.search?location.search+'&':'?')+'_cb='+Date.now(),{cache:'no-store'})
   .then(function(r){return r.text()})
   .then(function(t){
@@ -91,6 +97,35 @@ function check(){
 setTimeout(check,2500);
 setInterval(check,60000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
+})();</script><script data-cfasync="false" id="mld-menu-guard">(function(){
+/* Safety net. The menu is React-driven; if hydration is ever disturbed (an
+   edge rewrite, a slow script, a GPU stall) its handler can be lost and the
+   burger goes dead. This attaches no DOM, only listeners, so it cannot itself
+   upset hydration — and it only acts if React did not. */
+function menu(){return document.getElementById('menu');}
+function burger(){return document.getElementById('burger-btn');}
+function isOpen(){var m=menu();return !!m&&m.classList.contains('active');}
+function setOpen(open){
+  var m=menu(),b=burger();
+  if(!m||!b)return;
+  if(open){m.classList.add('active');m.style.display='flex';}
+  else{m.classList.remove('active');m.style.display='';}
+  b.setAttribute('aria-expanded',open?'true':'false');
+}
+document.addEventListener('click',function(e){
+  var b=burger();
+  if(!b)return;
+  var t=e.target;
+  if(t!==b&&!(b.contains&&b.contains(t)))return;
+  var was=isOpen();
+  setTimeout(function(){ if(isOpen()===was) setOpen(!was); },140);
+},true);
+/* close when a menu link is chosen */
+document.addEventListener('click',function(e){
+  var a=e.target&&e.target.closest?e.target.closest('#menu a'):null;
+  if(a)setTimeout(function(){setOpen(false);},60);
+},true);
+window.__mldMenuOpen=isOpen;
 })();</script></head>
 <body>
 <div class="wrap">
