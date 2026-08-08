@@ -253,7 +253,14 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
       var kl = Math.hypot(kx, ny, nz) || 1;
       gl.uniform3f(MU.uKeyDir, kx / kl, ny / kl, nz / kl);
       var spin = REDUCE ? 0.8 : t * L.spin;
-      var rot = D.mul3(D.rotX3(spin * D.SPIN_X * L.tumble), D.rotY3(spin * D.SPIN_Y));
+      /* The geometry's 3-fold axis runs along Z, which points at the camera. A
+         fixed quarter turn about X stands it up first, so with tumble at zero
+         the solid turns on its own upright axis instead of sweeping that axis
+         across the view. Applied innermost, before the spin. */
+      var rot = D.mul3(
+        D.mul3(D.rotX3(spin * D.SPIN_X * L.tumble), D.rotY3(spin * D.SPIN_Y)),
+        D.rotX3(-Math.PI / 2)
+      );
       gl.uniformMatrix4fv(MU.uModel, false, D.toMat4(rot, SOLID_SCALE * L.size));
       gl.uniformMatrix3fv(MU.uRot, false, rot);
       gl.drawArrays(gl.TRIANGLES, 0, count);
