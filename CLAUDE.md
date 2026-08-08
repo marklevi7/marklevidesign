@@ -92,9 +92,36 @@ Switching or reverting is that one line — the files stay on disk:
 
 - `assets/patterns/pattern-01-halftone-ripple.js` — pattern 1, sparse dots
 - `assets/patterns/pattern-03-halftone-updraft.js` — pattern 3, round dots (**undo target for the square variant**)
-- `assets/patterns/pattern-03b-updraft-solid.js` — pattern 3 with square cells, currently live
+- `assets/patterns/pattern-03b-updraft-solid.js` — pattern 3 with square cells, live on the homepage
+- `assets/patterns/pattern-03d-durer-composite.js` — 03b with Dürer's solid rendered into the field, live on `/sandbox`
 
 Round cells cap near 20% coverage (`maskCircle` radius is `sqrt(cov) * 0.25`), so they can never read as solid; square cells fill completely, which is the knob for "darker in the dark areas". Other density levers, roughly strongest first: dot radius, `density`, canvas `alpha`, `pixelSize`, then the noise curve in the shader.
+
+### The sandbox and the solid
+
+`/sandbox` is a clone of the homepage (`sandbox.html` + `sandbox/index.html`, both
+`noindex`) for trying things without touching what visitors see. Edits there do not
+propagate — the two are separate copies and drift apart on purpose.
+
+It runs the composite pattern, whose layer order is the whole point:
+
+    waves (the fBm feed)  →  Dürer's solid  →  the dither/pixelation filter
+
+So the solid is not a canvas on top of the pattern. It renders to a framebuffer inside
+the *same* WebGL context, and the dither pass samples that buffer and lets it replace
+the noise feed inside the silhouette — which is why it comes out pixelated like
+everything else. Two contexts could not do this; a texture cannot cross between them.
+
+- `assets/patterns/shape-durer.js` — geometry, mesh shaders and lighting only, exported
+  on `window.MLD_DURER`. Draws nothing itself.
+- `assets/patterns/shape-durer-standalone.js` — the earlier version that owned its own
+  canvas and sat *above* the pattern, unpixelated. **Undo target.**
+
+Two traps worth remembering. The solid's coverage mapping flips with the theme
+(`uShapeLo`/`uShapeHi`): ink is dark on the light page and white on the dark one, so
+opposite ends of the shading ramp read as dense. And anything that writes to the
+documentElement class list from inside `sync()` re-triggers the theme MutationObserver
+that called it — guard the write or the page locks up.
 
 Implementation notes: the handoff drives patterns 1–4 through three.js, which it uses only to draw a fullscreen quad — port shaders onto raw WebGL2 instead (see `assets/patterns/`) so the site takes no CDN dependency. Every pattern must be theme-reactive: light and dark differ in both colour and motion. Mount patterns by script, never in markup, or React hydration drops them.
 

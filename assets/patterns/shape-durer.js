@@ -1,51 +1,50 @@
-/* mld-shape-durer — Dürer's solid (truncated triangular trapezohedron), rotating.
+/* mld-shape-durer — Dürer's solid, as a library.
 
    Geometry per the handoff: a rhombohedron whose rhombic faces have a 72 degree
    acute angle, with both 3-fold apexes truncated at 1/phi — the one depth that
    lands all 12 vertices on a shared circumsphere. 12 verts, 8 faces (2 triangle
    caps + 6 pentagons), 18 edges.
 
-   The handoff drives this through three.js off a CDN. The rest of this site
-   deliberately carries no CDN dependency for its visuals (see CLAUDE.md), and
-   three.js here would only be doing what ~120 lines of raw WebGL do: transform a
-   mesh and light it. So this is the same geometry and the same lighting rig on
-   plain WebGL — flat-shaded via per-face duplicated vertices, key light
-   top-left-front, soft fill bottom-right.
+   The handoff drives this through three.js off a CDN. three.js here would only
+   be transforming a mesh and lighting it, and the site's visuals deliberately
+   carry no CDN dependency (see CLAUDE.md), so this is the same geometry and the
+   same rig on plain WebGL.
 
-   Colour comes from --color-black, which the theme already inverts: deep plum on
-   the light page, white on the dark one. No new tokens. */
+   This file draws nothing on its own. It hands the mesh, the shaders and the
+   lighting to whoever wants to render it — currently the composite pattern,
+   which renders the solid into the dither field so the pixelation filter runs
+   over it too. shape-durer-standalone.js is the earlier version that owned its
+   own canvas and sat on top of the pattern; kept as the undo path. */
 (function () {
+  /* Writes the lighting term, not a colour: the dither pass decides how a
+     shading value becomes dot coverage, and that mapping flips between themes. */
   var VERT_SRC =
-    'attribute vec3 aPos;attribute vec3 aNormal;' +
+    '#version 300 es\n' +
+    'in vec3 aPos;in vec3 aNormal;' +
     'uniform mat4 uProj;uniform mat4 uView;uniform mat4 uModel;uniform mat3 uRot;' +
-    'varying vec3 vN;varying vec3 vW;' +
+    'out vec3 vN;out vec3 vW;' +
     'void main(){vec4 wp=uModel*vec4(aPos,1.0);vW=wp.xyz;vN=uRot*aNormal;' +
     'gl_Position=uProj*uView*wp;}';
 
   var FRAG_SRC =
+    '#version 300 es\n' +
     'precision highp float;' +
-    'uniform vec3 uColor;uniform vec3 uCam;uniform vec3 uKeyDir;uniform vec3 uFillDir;' +
-    'uniform float uAmbient;uniform float uKey;uniform float uFill;uniform float uSpec;' +
-    'varying vec3 vN;varying vec3 vW;' +
+    'uniform vec3 uCam;uniform vec3 uKeyDir;uniform vec3 uFillDir;' +
+    'uniform float uAmbient;uniform float uKey;uniform float uFill;' +
+    'in vec3 vN;in vec3 vW;' +
+    'out vec4 fragColor;' +
     'void main(){' +
     'vec3 N=normalize(vN);' +
-    'vec3 V=normalize(uCam-vW);' +
     'float k=max(dot(N,uKeyDir),0.0);' +
     'float f=max(dot(N,uFillDir),0.0);' +
     'float d=uAmbient+uKey*k+uFill*f;' +
-    'vec3 H=normalize(uKeyDir+V);' +
-    'float s=pow(max(dot(N,H),0.0),26.0)*uSpec*k;' +
-    'gl_FragColor=vec4(uColor*d+vec3(s),1.0);}';
-
-  /* --- geometry ------------------------------------------------------- */
+    'float dn=clamp((d-uAmbient)/(uKey+uFill),0.0,1.0);' +
+    'fragColor=vec4(dn,0.0,0.0,1.0);}';
 
   var H = Math.sqrt((3 * Math.sqrt(5) + 5) / 10);   /* rhombohedron half-height */
   var P = 2.0 / (1.0 + Math.sqrt(5));               /* truncation depth, 1/phi   */
-  var zM = H / 2;                                   /* middle-ring half-height   */
-  var zC = H * (1.5 - P);                           /* cap half-height           */
-  var rM = 1.0;                                     /* middle-ring radius        */
-  var rC = P;                                       /* cap radius                */
-  var s60 = Math.sqrt(3) / 2;
+  var zM = H / 2, zC = H * (1.5 - P);
+  var rM = 1.0, rC = P, s60 = Math.sqrt(3) / 2;
 
   var V = [
     [ rM,       0,        -zM],   /*  0  lower ring,   0deg */
@@ -63,9 +62,9 @@
   ];
 
   var FACES = [
-    [6, 7, 8],          /* top triangle    */
-    [9, 10, 11],        /* bottom triangle */
-    [6, 3, 0, 4, 7],    /* top pentagons   */
+    [6, 7, 8],          /* top triangle     */
+    [9, 10, 11],        /* bottom triangle  */
+    [6, 3, 0, 4, 7],    /* top pentagons    */
     [8, 5, 1, 3, 6],
     [7, 4, 2, 5, 8],
     [9, 0, 3, 1, 10],   /* bottom pentagons */
@@ -101,8 +100,6 @@
     }
     return { positions: new Float32Array(positions), normals: new Float32Array(normals) };
   }
-
-  /* --- tiny matrix helpers -------------------------------------------- */
 
   function perspective(fovDeg, aspect, near, far) {
     var f = 1 / Math.tan(fovDeg * Math.PI / 360), nf = 1 / (near - far);
@@ -140,204 +137,22 @@
     return [v[0] / l, v[1] / l, v[2] / l];
   }
 
-  /* --- theme ----------------------------------------------------------- */
-
-  function isDark() { return document.documentElement.classList.contains('dark'); }
-
-  /* Lighting rig from the handoff. Light mode carries a dark solid on a pale
-     page, so it needs the brighter setup to keep the facets apart. */
-  var LIGHTING = {
-    light: { ambient: 0.45, key: 2.40, fill: 0.60, spec: 0.05 },
-    dark:  { ambient: 0.26, key: 0.58, fill: 0.16, spec: 0.14 }
+  window.MLD_DURER = {
+    VERT_SRC: VERT_SRC,
+    FRAG_SRC: FRAG_SRC,
+    buildMesh: buildMesh,
+    /* Lighting rig from the handoff: strong key top-left-front, soft fill
+       bottom-right, ambient floor. */
+    LIGHTING: { ambient: 0.42, key: 1.30, fill: 0.34 },
+    KEY_DIR: norm3([-4.0, 4.5, 5.5]),
+    FILL_DIR: norm3([3.0, -1.5, 2.0]),
+    CAM: [0, 0, 7.0],
+    FOV: 38,
+    /* Radians per second, from the handoff. */
+    SPIN_Y: 0.45,
+    SPIN_X: 0.30,
+    perspective: perspective,
+    translation: translation,
+    mul3: mul3, rotX3: rotX3, rotY3: rotY3, toMat4: toMat4
   };
-  var KEY_DIR = norm3([-4.0, 4.5, 5.5]);    /* top-left-front */
-  var FILL_DIR = norm3([3.0, -1.5, 2.0]);   /* soft bottom-right */
-  var CAM = [0, 0, 7.0];
-
-  function shapeColor() {
-    /* --color-black is the theme's foreground: deep plum on light, white on dark. */
-    var raw = getComputedStyle(document.documentElement).getPropertyValue('--color-black');
-    var m = raw && raw.match(/[\d.]+/g);
-    if (!m || m.length < 3) return isDark() ? [1, 1, 1] : [0.125, 0.114, 0.153];
-    return [m[0] / 255, m[1] / 255, m[2] / 255];
-  }
-
-  /* --- renderer -------------------------------------------------------- */
-
-  function compile(gl, type, src) {
-    var sh = gl.createShader(type);
-    gl.shaderSource(sh, src); gl.compileShader(sh);
-    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-      console.error('[mld-shape]', gl.getShaderInfoLog(sh)); return null;
-    }
-    return sh;
-  }
-
-  function init(container) {
-    var canvas = document.createElement('canvas');
-    canvas.setAttribute('aria-hidden', 'true');
-    container.appendChild(canvas);
-    var gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: true })
-          || canvas.getContext('experimental-webgl', { alpha: true, antialias: true });
-    if (!gl) return false;   /* no WebGL: the container stays empty, layout unaffected */
-
-    var vs = compile(gl, gl.VERTEX_SHADER, VERT_SRC);
-    var fs = compile(gl, gl.FRAGMENT_SHADER, FRAG_SRC);
-    if (!vs || !fs) return false;
-    var prog = gl.createProgram();
-    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      console.error('[mld-shape]', gl.getProgramInfoLog(prog)); return false;
-    }
-    gl.useProgram(prog);
-
-    var mesh = buildMesh();
-    var triCount = mesh.positions.length / 3;
-
-    var posBuf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.STATIC_DRAW);
-    var aPos = gl.getAttribLocation(prog, 'aPos');
-    gl.enableVertexAttribArray(aPos);
-    gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
-
-    var nrmBuf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, nrmBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
-    var aNormal = gl.getAttribLocation(prog, 'aNormal');
-    gl.enableVertexAttribArray(aNormal);
-    gl.vertexAttribPointer(aNormal, 3, gl.FLOAT, false, 0, 0);
-
-    var U = {};
-    ['uProj','uView','uModel','uRot','uColor','uCam','uKeyDir','uFillDir',
-     'uAmbient','uKey','uFill','uSpec'].forEach(function (n) {
-      U[n] = gl.getUniformLocation(prog, n);
-    });
-
-    gl.enable(gl.DEPTH_TEST);
-    gl.enable(gl.CULL_FACE);
-    gl.cullFace(gl.BACK);
-
-    gl.uniformMatrix4fv(U.uView, false, translation(-CAM[0], -CAM[1], -CAM[2]));
-    gl.uniform3f(U.uCam, CAM[0], CAM[1], CAM[2]);
-    gl.uniform3f(U.uKeyDir, KEY_DIR[0], KEY_DIR[1], KEY_DIR[2]);
-    gl.uniform3f(U.uFillDir, FILL_DIR[0], FILL_DIR[1], FILL_DIR[2]);
-
-    var scale = 1.62;
-
-    function applyTheme() {
-      var L = LIGHTING[isDark() ? 'dark' : 'light'];
-      var c = shapeColor();
-      gl.useProgram(prog);
-      gl.uniform3f(U.uColor, c[0], c[1], c[2]);
-      gl.uniform1f(U.uAmbient, L.ambient);
-      gl.uniform1f(U.uKey, L.key);
-      gl.uniform1f(U.uFill, L.fill);
-      gl.uniform1f(U.uSpec, L.spec);
-    }
-
-    function resize() {
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      var w = Math.max(container.clientWidth, 1), h = Math.max(container.clientHeight, 1);
-      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-      canvas.style.width = '100%'; canvas.style.height = '100%';
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.useProgram(prog);
-      gl.uniformMatrix4fv(U.uProj, false, perspective(38, w / h, 0.1, 100));
-      /* Ease the solid down a touch in short boxes so it never crops. */
-      var fit = Math.min(1, h / 460);
-      scale = 1.62 * (0.82 + fit * 0.18);
-    }
-
-    applyTheme();
-    resize();
-    if ('ResizeObserver' in window) new ResizeObserver(resize).observe(container);
-    else window.addEventListener('resize', resize);
-    new MutationObserver(applyTheme)
-      .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-
-    var visible = true;
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(function (en) { visible = en[0].isIntersecting; }, { threshold: 0 })
-        .observe(container);
-    }
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    var start = performance.now();
-    (function tick() {
-      if (visible) {
-        var t = reduce ? 0.8 : (performance.now() - start) / 1000;
-        var rot = mul3(rotX3(t * 0.30), rotY3(t * 0.45));
-        gl.useProgram(prog);
-        gl.uniformMatrix4fv(U.uModel, false, toMat4(rot, scale));
-        gl.uniformMatrix3fv(U.uRot, false, rot);
-        gl.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        gl.drawArrays(gl.TRIANGLES, 0, triCount);
-      }
-      requestAnimationFrame(tick);
-    })();
-    return true;
-  }
-
-  /* --- mount ------------------------------------------------------------ */
-
-  /* Same rule as the hero pattern: the page is hydrated by React into <body>,
-     so never inject into a React-owned subtree. The canvas lives in its own
-     body-level element, positioned over the hero in document coordinates. */
-  function heroEl() {
-    var cta = document.querySelector('#hero-calendly');
-    return cta && cta.closest('section');
-  }
-
-  function place(host) {
-    var hero = heroEl();
-    if (!hero) return;
-    var r = hero.getBoundingClientRect();
-    var cs = getComputedStyle(hero);
-    var padL = parseFloat(cs.paddingLeft) || 0, padR = parseFloat(cs.paddingRight) || 0;
-    var padT = parseFloat(cs.paddingTop) || 0, padB = parseFloat(cs.paddingBottom) || 0;
-    var left = r.left + window.scrollX + padL;
-    var right = r.right + window.scrollX - padR;
-    var desktop = window.innerWidth >= 992;
-
-    if (desktop) {
-      /* Right-hand 40% of the hero's content column, filling its height. */
-      var colW = (right - left) * 0.40;
-      host.style.left = Math.round(right - colW) + 'px';
-      host.style.width = Math.round(colW) + 'px';
-      host.style.top = Math.round(r.top + window.scrollY + padT) + 'px';
-      host.style.height = Math.max(Math.round(r.height - padT - padB), 300) + 'px';
-    } else {
-      /* Under the CTA, in the band the hero's bottom padding reserves for it. */
-      var cta = document.getElementById('hero-calendly');
-      var top = cta
-        ? cta.getBoundingClientRect().bottom + window.scrollY + 24
-        : r.top + window.scrollY + padT;
-      var bottom = r.bottom + window.scrollY - 24;
-      host.style.left = Math.round(left) + 'px';
-      host.style.width = Math.round(right - left) + 'px';
-      host.style.top = Math.round(top) + 'px';
-      host.style.height = Math.max(Math.round(bottom - top), 240) + 'px';
-    }
-  }
-
-  function mount() {
-    if (document.querySelector('.mld-shape')) return;
-    if (!heroEl()) return;
-    var d = document.createElement('div');
-    d.className = 'mld-shape';
-    document.body.appendChild(d);
-    place(d);
-    if (!init(d)) { d.remove(); return; }
-    document.documentElement.classList.add('mld-shape-on');
-    var replace = function () { place(d); };
-    window.addEventListener('resize', replace, { passive: true });
-    if ('ResizeObserver' in window) new ResizeObserver(replace).observe(document.body);
-    [200, 800, 2000].forEach(function (ms) { setTimeout(replace, ms); });
-  }
-
-  function boot() { requestAnimationFrame(function () { requestAnimationFrame(mount); }); }
-  if (document.readyState === 'complete') boot();
-  else window.addEventListener('load', boot);
 })();
