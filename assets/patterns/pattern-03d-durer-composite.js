@@ -79,8 +79,11 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
       /* Twice the size it was, which is wider than the phone - so it is centred
          on the viewport and allowed to bleed off both sides and downward under
          the proof blob. Still anchored 24px below the CTA. */
+      /* Three lines of body copy higher than it sat. Mobile body text is 16px
+         on a 1.5 line-height, so a line is 24px. The solid does not fill its
+         box, so it still clears the button by a comfortable margin. */
       var ctaB = cta.getBoundingClientRect().bottom;
-      top = ctaB + 24;
+      top = ctaB + 24 - 72;
       h = Math.round(window.innerWidth * 1.79);
       w = Math.round(h * 0.78);
       left = hr.left + (hr.width - w) / 2;
