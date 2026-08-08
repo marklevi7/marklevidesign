@@ -30,7 +30,7 @@
     '#version 300 es\n' +
     'precision highp float;' +
     'uniform vec3 uCam;uniform vec3 uKeyDir;uniform vec3 uFillDir;' +
-    'uniform float uAmbient;uniform float uKey;uniform float uFill;' +
+    'uniform float uAmbient;uniform float uKey;uniform float uFill;uniform float uContrast;' +
     'in vec3 vN;in vec3 vW;' +
     'out vec4 fragColor;' +
     'void main(){' +
@@ -39,6 +39,7 @@
     'float f=max(dot(N,uFillDir),0.0);' +
     'float d=uAmbient+uKey*k+uFill*f;' +
     'float dn=clamp((d-uAmbient)/(uKey+uFill),0.0,1.0);' +
+    'dn=clamp((dn-0.5)*uContrast+0.5,0.0,1.0);' +
     'fragColor=vec4(dn,0.0,0.0,1.0);}';
 
   var H = Math.sqrt((3 * Math.sqrt(5) + 5) / 10);   /* rhombohedron half-height */
@@ -146,7 +147,7 @@
        did, which widens the spread of the shading term rather than just
        raising it - a uniform scale of key and fill would cancel out, since the
        shader normalises by their sum. */
-    LIGHTING: { ambient: 0.42, key: 1.73, fill: 0.34 },
+    LIGHTING: { ambient: 0.42, key: 2.30, fill: 0.34, contrast: 1.10 },
     KEY_DIR: norm3([-4.0, 4.5, 5.5]),
     FILL_DIR: norm3([3.0, -1.5, 2.0]),
     CAM: [0, 0, 7.0],
