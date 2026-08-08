@@ -30,8 +30,10 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
   // mode keeps 0.45 - there, weaker ink would read as darker, not lighter.
   var CARD = { alpha: { light: 0.225, dark: 0.45 }, density: 0.55, gradientY: 0 };
   // The founder card on /about. Its ink is not the theme ink: it is the card's
-  // own surface colour pushed about 10% - brighter on a dark card, darker on a
-  // light one - so the pixels read as a texture of the surface, not print.
+  // own surface colour pushed - 15% brighter on the dark card light mode shows,
+  // 10% darker on the white one in dark mode - so the pixels read as a texture
+  // of the surface, not print. The asymmetry is the owner's call: 10% up was
+  // too faint against the dark card, 10% down reads fine against white.
   var FOUNDER = { alpha: 1, density: 0.55, gradientY: 0, inkFn: founderInk };
 
   function founderInk() {
@@ -42,7 +44,7 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     var m = v.match(/(\d+)[^\d]+(\d+)[^\d]+(\d+)/);
     if (!m) return [0.14, 0.13, 0.17];
     var r = +m[1] / 255, g = +m[2] / 255, b = +m[3] / 255;
-    var f = (0.2126 * r + 0.7152 * g + 0.0722 * b) < 0.5 ? 1.1 : 0.9;
+    var f = (0.2126 * r + 0.7152 * g + 0.0722 * b) < 0.5 ? 1.15 : 0.9;
     return [Math.min(r * f, 1), Math.min(g * f, 1), Math.min(b * f, 1)];
   }
 
