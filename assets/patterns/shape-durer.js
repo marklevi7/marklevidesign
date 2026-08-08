@@ -142,8 +142,11 @@
     FRAG_SRC: FRAG_SRC,
     buildMesh: buildMesh,
     /* Lighting rig from the handoff: strong key top-left-front, soft fill
-       bottom-right, ambient floor. */
-    LIGHTING: { ambient: 0.42, key: 1.30, fill: 0.34 },
+       bottom-right, ambient floor. The key carries a third more weight than it
+       did, which widens the spread of the shading term rather than just
+       raising it - a uniform scale of key and fill would cancel out, since the
+       shader normalises by their sum. */
+    LIGHTING: { ambient: 0.42, key: 1.73, fill: 0.34 },
     KEY_DIR: norm3([-4.0, 4.5, 5.5]),
     FILL_DIR: norm3([3.0, -1.5, 2.0]),
     CAM: [0, 0, 7.0],

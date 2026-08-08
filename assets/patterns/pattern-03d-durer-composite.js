@@ -189,8 +189,8 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
          is what turned the faces into flat plates with hard vector edges
          between them. Below 0.37 the solid drops under the field and reads as
          a hole. 0.45 to 0.90 keeps every part of it genuinely dithered. */
-      gl.uniform1f(U.uShapeLo, dark ? 0.45 : 0.90);
-      gl.uniform1f(U.uShapeHi, dark ? 0.90 : 0.45);
+      gl.uniform1f(U.uShapeLo, dark ? 0.415 : 0.936);
+      gl.uniform1f(U.uShapeHi, dark ? 0.936 : 0.415);
       ok = true;
       /* Only now does the layout reserve room for the solid, so a browser
          without the mesh gets the plain hero rather than an empty band. Guarded:
@@ -315,7 +315,10 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
        over it. Its target is only as large as the solid's own box, which costs
        a fraction of a full-canvas buffer. Absent the library, nothing changes
        and this behaves as plain 03b. */
-    var solid = window.MLD_DURER ? buildSolid(gl, U, canvas, function () { return dpr; }) : null;
+    /* Hero only. The stat card runs this same shader for its own dot field and
+       must not get the solid as well. */
+    var wantsSolid = window.MLD_DURER && !container.classList.contains('mld-card-pattern');
+    var solid = wantsSolid ? buildSolid(gl, U, canvas, function () { return dpr; }) : null;
     if (solid) solid.setDitherProgram(prog);
 
     var theme = applyTheme();
