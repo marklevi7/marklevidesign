@@ -76,17 +76,23 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
       var mid = hr.top + padT + (hr.height - padT - padB) / 2;
       top = mid - h / 2;
     } else {
-      left = hr.left + padL;
-      w = hr.width - padL - padR;
+      /* Twice the size it was, which is wider than the phone - so it is centred
+         on the viewport and allowed to bleed off both sides and downward under
+         the proof blob. Still anchored 24px below the CTA. */
       var ctaB = cta.getBoundingClientRect().bottom;
       top = ctaB + 24;
-      h = Math.max(240, (hr.bottom - 24) - top);
+      h = Math.round(window.innerWidth * 1.79);
+      w = Math.round(h * 0.78);
+      left = hr.left + (hr.width - w) / 2;
     }
-    /* Keep the box inside the pattern host, or the solid gets clipped by the
-       framebuffer rather than framed by it. */
+    /* Only the top is pinned. Pushing the box up to fit inside the host would
+       drag the solid back over the CTA, and on mobile it is meant to run past
+       the bottom of the hero anyway. */
     var x = left - hostRect.left, y = top - hostRect.top;
     if (y < 0) y = 0;
-    if (y + h > hostRect.height) y = Math.max(0, hostRect.height - h);
+    if (window.innerWidth >= 992 && y + h > hostRect.height) {
+      y = Math.max(0, hostRect.height - h);
+    }
     return { x: x, y: y, w: w, h: h };
   }
 
