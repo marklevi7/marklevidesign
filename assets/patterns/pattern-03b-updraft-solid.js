@@ -29,6 +29,22 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
   // way back to the card surface, which is what "50% lighter" means. Dark
   // mode keeps 0.45 - there, weaker ink would read as darker, not lighter.
   var CARD = { alpha: { light: 0.225, dark: 0.45 }, density: 0.55, gradientY: 0 };
+  // The founder card on /about. Its ink is not the theme ink: it is the card's
+  // own surface colour pushed about 10% - brighter on a dark card, darker on a
+  // light one - so the pixels read as a texture of the surface, not print.
+  var FOUNDER = { alpha: 1, density: 0.55, gradientY: 0, inkFn: founderInk };
+
+  function founderInk() {
+    // The card is painted with --color-black in both themes (the token flips
+    // to white on the dark page), so derive from the token, not a measurement:
+    // once the fx class makes the card transparent there is nothing to measure.
+    var v = getComputedStyle(document.documentElement).getPropertyValue('--color-black');
+    var m = v.match(/(\d+)[^\d]+(\d+)[^\d]+(\d+)/);
+    if (!m) return [0.14, 0.13, 0.17];
+    var r = +m[1] / 255, g = +m[2] / 255, b = +m[3] / 255;
+    var f = (0.2126 * r + 0.7152 * g + 0.0722 * b) < 0.5 ? 1.1 : 0.9;
+    return [Math.min(r * f, 1), Math.min(g * f, 1), Math.min(b * f, 1)];
+  }
 
   function isDark() { return document.documentElement.classList.contains('dark'); }
 
@@ -95,6 +111,10 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
       gl.uniform1f(U.uRippleSpeed, t.rippleSpeed);
       gl.uniform1f(U.uFlowY, t.flowY);
       gl.uniform1f(U.uGradientY, over && over.gradientY != null ? over.gradientY : t.gradientY);
+      if (over && over.inkFn) {
+        var ik = over.inkFn();
+        gl.uniform3f(U.uColor, ik[0], ik[1], ik[2]);
+      }
       var oa = over && over.alpha;
       if (oa && typeof oa === 'object') oa = isDark() ? oa.dark : oa.light;
       canvas.style.opacity = oa != null ? oa : t.alpha;
@@ -241,7 +261,47 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     [200, 800, 2000].forEach(function (ms) { setTimeout(replace, ms); });
   }
 
-  function boot() { requestAnimationFrame(function () { requestAnimationFrame(function () { mount(); mountCard(); }); }); }
+  // The founder card on /about: the same window-onto-the-field trick as the
+  // stat card. The host paints the card colour underneath (rounded, clipped),
+  // the card itself goes transparent once the canvas is actually running
+  // (html.mld-founderfx), and the avatar - a sibling overlapping the card -
+  // stays above because page content sits at z-index 1 over the pattern's 0.
+  function founderEl() {
+    var hs = document.querySelectorAll('h2');
+    for (var i = 0; i < hs.length; i++) {
+      if (/TL;DR/.test(hs[i].textContent)) return hs[i].closest('div');
+    }
+    return null;
+  }
+
+  function placeFounder(host) {
+    var c = founderEl();
+    if (!c) return;
+    var r = c.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    host.style.top = Math.round(r.top + window.scrollY) + 'px';
+    host.style.left = Math.round(r.left + window.scrollX) + 'px';
+    host.style.width = Math.round(r.width) + 'px';
+    host.style.height = Math.round(r.height) + 'px';
+  }
+
+  function mountFounder() {
+    if (document.querySelector('.mld-founder-pattern')) return;
+    var c = founderEl();
+    if (!c) return;
+    var d = document.createElement('div');
+    d.className = 'mld-pattern mld-founder-pattern';
+    document.body.appendChild(d);
+    placeFounder(d);
+    if (!init(d, FOUNDER)) { d.remove(); return; }
+    document.documentElement.classList.add('mld-founderfx');
+    var re = function () { placeFounder(d); };
+    window.addEventListener('resize', re, { passive: true });
+    if ('ResizeObserver' in window) new ResizeObserver(re).observe(document.body);
+    [200, 800, 2000].forEach(function (ms) { setTimeout(re, ms); });
+  }
+
+  function boot() { requestAnimationFrame(function () { requestAnimationFrame(function () { mount(); mountCard(); mountFounder(); }); }); }
   if (document.readyState === 'complete') boot();
   else window.addEventListener('load', boot);
 })();
