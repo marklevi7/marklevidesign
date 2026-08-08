@@ -189,8 +189,14 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
          is what turned the faces into flat plates with hard vector edges
          between them. Below 0.37 the solid drops under the field and reads as
          a hole. 0.45 to 0.90 keeps every part of it genuinely dithered. */
-      gl.uniform1f(U.uShapeLo, dark ? 0.415 : 0.936);
-      gl.uniform1f(U.uShapeHi, dark ? 0.936 : 0.415);
+      /* Brightness is asymmetric between the themes because the ink flips.
+         On the light page the ink is dark, so brighter means thinning out: the
+         whole band scales by 0.67 for the full third. On the dark page the ink
+         is white, so brighter means packing tighter - and the band already runs
+         to 0.936 against a hard ceiling of 1.0, leaving only a few percent of
+         headroom before faces fill solid and lose their dots. */
+      gl.uniform1f(U.uShapeLo, dark ? 0.52 : 0.627);
+      gl.uniform1f(U.uShapeHi, dark ? 0.97 : 0.278);
       ok = true;
       /* Only now does the layout reserve room for the solid, so a browser
          without the mesh gets the plain hero rather than an empty band. Guarded:
