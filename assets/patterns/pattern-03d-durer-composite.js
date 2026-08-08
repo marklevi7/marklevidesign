@@ -127,7 +127,7 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     gl.bindVertexArray(null);
 
     var MU = {};
-    ['uProj','uView','uModel','uRot','uCam','uKeyDir','uFillDir','uAmbient','uKey','uFill']
+    ['uProj','uView','uModel','uRot','uCam','uKeyDir','uFillDir','uAmbient','uKey','uFill','uContrast']
       .forEach(function (n) { MU[n] = gl.getUniformLocation(prog, n); });
 
     var tex = gl.createTexture();
@@ -147,6 +147,7 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     gl.uniform1f(MU.uAmbient, D.LIGHTING.ambient);
     gl.uniform1f(MU.uKey, D.LIGHTING.key);
     gl.uniform1f(MU.uFill, D.LIGHTING.fill);
+    gl.uniform1f(MU.uContrast, D.LIGHTING.contrast || 1.0);
 
     function sync() {
       var host = canvas.parentElement;
