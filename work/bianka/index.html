@@ -43,7 +43,7 @@ function position(){
 function boot(){requestAnimationFrame(function(){requestAnimationFrame(build)});}
 if(document.readyState==='complete')boot();
 else window.addEventListener('load',boot);
-})();</script><script data-cfasync="false" id="mld-scrollhdr">(function(){var d=document.documentElement;function u(){if(window.scrollY>8)d.classList.add("mld-scrolled");else d.classList.remove("mld-scrolled");}u();window.addEventListener("scroll",u,{passive:true});})();</script><script data-cfasync="false" id="mld-autorefresh" data-build="987e28d17a">(function(){
+})();</script><script data-cfasync="false" id="mld-scrollhdr">(function(){var d=document.documentElement;function u(){if(window.scrollY>8)d.classList.add("mld-scrolled");else d.classList.remove("mld-scrolled");}u();window.addEventListener("scroll",u,{passive:true});})();</script><script data-cfasync="false" id="mld-autorefresh" data-build="5a2458ab90">(function(){
 var s=document.getElementById('mld-autorefresh');if(!s)return;var id=s.getAttribute('data-build');if(!id)return;var busy=false;
 var lastTouch=0;
 ['pointerdown','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,function(){lastTouch=Date.now();},{passive:true,capture:true});});
@@ -68,7 +68,7 @@ function check(){
 setTimeout(check,2500);
 setInterval(check,60000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
-})();</script><script data-cfasync="false" id="mld-menu-guard">(function(){
+})();</script><script data-cfasync="false" id="mld-trimgap">(function(){/* Hydration leaves a whitespace-only text node as a direct child of <body>. It is not in the served HTML - React puts it there - and it renders as an empty line box after the footer, which is the white strip below the dark footer on mobile. Removing the node is safe: nothing on these pages re-renders, and it carries no content. */function trim(){var n=document.body&&document.body.firstChild,x;while(n){x=n.nextSibling;if(n.nodeType===3&&!/\S/.test(n.nodeValue))n.parentNode.removeChild(n);n=x;}}function boot(){requestAnimationFrame(function(){requestAnimationFrame(trim)});}if(document.readyState==="complete")boot();else window.addEventListener("load",boot);})();</script><script data-cfasync="false" id="mld-menu-guard">(function(){
 /* Safety net. The menu is React-driven; if hydration is ever disturbed (an
    edge rewrite, a slow script, a GPU stall) its handler can be lost and the
    burger goes dead. This attaches no DOM, only listeners, so it cannot itself
