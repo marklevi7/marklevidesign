@@ -128,7 +128,7 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
 
     var MU = {};
     ['uProj','uView','uModel','uRot','uCam','uKeyDir','uFillDir','uAmbient','uKey','uFill','uContrast',
-     'uMetal','uShine']
+     'uMetal','uShine','uRim','uSheen','uGamma']
       .forEach(function (n) { MU[n] = gl.getUniformLocation(prog, n); });
 
     var tex = gl.createTexture();
@@ -237,12 +237,20 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
       gl.uniform1f(MU.uContrast, L.contrast);
       gl.uniform1f(MU.uMetal, L.metal);
       gl.uniform1f(MU.uShine, L.shine);
-      var a = L.angle * Math.PI / 180;
+      gl.uniform1f(MU.uRim, L.rim);
+      gl.uniform1f(MU.uSheen, L.sheen);
+      gl.uniform1f(MU.uGamma, L.gamma);
+      /* Key direction: swing around the solid, then lift or drop. */
+      var a = L.angle * Math.PI / 180, e = L.elevation * Math.PI / 180;
       var kd = D.KEY_DIR;
       var ca = Math.cos(a), sa = Math.sin(a);
-      gl.uniform3f(MU.uKeyDir, kd[0] * ca - kd[2] * sa, kd[1], kd[0] * sa + kd[2] * ca);
+      var kx = kd[0] * ca - kd[2] * sa, ky = kd[1], kz = kd[0] * sa + kd[2] * ca;
+      var ce = Math.cos(e), se = Math.sin(e);
+      var ny = ky * ce - kz * se, nz = ky * se + kz * ce;
+      var kl = Math.hypot(kx, ny, nz) || 1;
+      gl.uniform3f(MU.uKeyDir, kx / kl, ny / kl, nz / kl);
       var spin = REDUCE ? 0.8 : t * L.spin;
-      var rot = D.mul3(D.rotX3(spin * D.SPIN_X), D.rotY3(spin * D.SPIN_Y));
+      var rot = D.mul3(D.rotX3(spin * D.SPIN_X * L.tumble), D.rotY3(spin * D.SPIN_Y));
       gl.uniformMatrix4fv(MU.uModel, false, D.toMat4(rot, SOLID_SCALE * L.size));
       gl.uniformMatrix3fv(MU.uRot, false, rot);
       gl.drawArrays(gl.TRIANGLES, 0, count);

@@ -12,20 +12,44 @@
    Mounted after load into a body-level element, like everything else here, so
    React's DOM is never touched. */
 (function () {
+  /* Grouped into tabs. Ceilings are deliberately generous - the owner reached
+     the top of contrast, key, fill, depth and sharpness on the first pass, so
+     none of them should bottom out again. */
+  var TABS = [
+    { id: 'light',   label: 'Light' },
+    { id: 'surface', label: 'Surface' },
+    { id: 'tone',    label: 'Tone' },
+    { id: 'motion',  label: 'Motion' }
+  ];
+
   var CONTROLS = [
-    { k: 'brightness', label: 'Brightness',  min: 0,   max: 1,   step: 0.01, fmt: pct },
-    { k: 'depth',      label: 'Depth',       min: 0.1, max: 1,   step: 0.01, fmt: pct,
+    { tab: 'light', k: 'key',       label: 'Key light',   min: 0.2, max: 20,  step: 0.1,  fmt: n2 },
+    { tab: 'light', k: 'fill',      label: 'Fill light',  min: 0,   max: 8,   step: 0.05, fmt: n2 },
+    { tab: 'light', k: 'angle',     label: 'Light angle', min: -180, max: 180, step: 1,   fmt: deg,
+      hint: 'swings the key around the solid' },
+    { tab: 'light', k: 'elevation', label: 'Light height', min: -90, max: 90, step: 1,    fmt: deg,
+      hint: 'lifts it above or drops it below' },
+    { tab: 'light', k: 'rim',       label: 'Rim light',   min: 0,   max: 1.5, step: 0.01, fmt: pct,
+      hint: 'catches faces turned away from you' },
+
+    { tab: 'surface', k: 'metal', label: 'Metallic',  min: 0, max: 2,   step: 0.01, fmt: pct,
+      hint: 'tight specular flash' },
+    { tab: 'surface', k: 'shine', label: 'Sharpness', min: 2, max: 400, step: 1,    fmt: n0,
+      hint: 'higher is a smaller, harder hotspot' },
+    { tab: 'surface', k: 'sheen', label: 'Sheen',     min: 0, max: 1.5, step: 0.01, fmt: pct,
+      hint: 'broad glow near the light - the magical one' },
+    { tab: 'surface', k: 'gamma', label: 'Falloff',   min: 0.3, max: 3, step: 0.02, fmt: x,
+      hint: 'below 1 lifts the mid faces, above 1 crushes them' },
+
+    { tab: 'tone', k: 'brightness', label: 'Brightness', min: 0,   max: 1,   step: 0.01, fmt: pct },
+    { tab: 'tone', k: 'depth',      label: 'Depth',      min: 0.1, max: 1.8, step: 0.01, fmt: pct,
       hint: 'light-to-dark range across the faces' },
-    { k: 'contrast',   label: 'Contrast',    min: 0.5, max: 2.5, step: 0.05, fmt: x },
-    { k: 'key',        label: 'Key light',   min: 0.2, max: 6,   step: 0.05, fmt: n2 },
-    { k: 'fill',       label: 'Fill light',  min: 0,   max: 2,   step: 0.02, fmt: n2 },
-    { k: 'metal',      label: 'Metallic',    min: 0,   max: 1,   step: 0.01, fmt: pct,
-      hint: 'specular highlight strength' },
-    { k: 'shine',      label: 'Sharpness',   min: 2,   max: 120, step: 1,    fmt: n0,
-      hint: 'how tight that highlight is' },
-    { k: 'angle',      label: 'Light angle', min: -180, max: 180, step: 1,   fmt: deg },
-    { k: 'size',       label: 'Size',        min: 0.4, max: 2,   step: 0.01, fmt: x },
-    { k: 'spin',       label: 'Spin speed',  min: 0,   max: 3,   step: 0.05, fmt: x }
+    { tab: 'tone', k: 'contrast',   label: 'Contrast',   min: 0.5, max: 6,   step: 0.05, fmt: x },
+
+    { tab: 'motion', k: 'size',   label: 'Size',       min: 0.4, max: 2, step: 0.01, fmt: x },
+    { tab: 'motion', k: 'spin',   label: 'Spin speed', min: 0,   max: 3, step: 0.05, fmt: x },
+    { tab: 'motion', k: 'tumble', label: 'Tumble',     min: 0,   max: 3, step: 0.05, fmt: x,
+      hint: 'how much it rolls as well as turns' }
   ];
 
   function pct(v) { return Math.round(v * 100) + '%'; }
@@ -45,6 +69,12 @@
     '#mld-ctl .row span:last-child{font-variant-numeric:tabular-nums;opacity:.7}' +
     '#mld-ctl input[type=range]{width:100%;margin:2px 0 0;accent-color:var(--color-accent);' +
     'height:18px;display:block}' +
+    '#mld-ctl .tabs{display:flex;gap:4px;margin:0 0 2px}' +
+    '#mld-ctl .tabs button{flex:1;padding:7px 4px;font-size:11px;letter-spacing:.04em;' +
+    'border:1px solid transparent;background:transparent;opacity:.5}' +
+    '#mld-ctl .tabs button[aria-selected="true"]{opacity:1;background:var(--color-white);' +
+    'border-color:var(--color-white)}' +
+    '#mld-ctl .pane{display:none}#mld-ctl .pane.on{display:block}' +
     '#mld-ctl .btns{display:flex;gap:8px;margin-top:var(--gap-s)}' +
     '#mld-ctl button{flex:1;font-family:DM Mono,monospace;font-size:12px;letter-spacing:.06em;' +
     'text-transform:uppercase;padding:10px 8px;border-radius:var(--border-radius-s);' +
@@ -71,7 +101,32 @@
 
     var defaults = JSON.parse(JSON.stringify(D.LIVE));
 
+    var tabBar = document.createElement('div');
+    tabBar.className = 'tabs';
+    var panes = {};
+    TABS.forEach(function (t, i) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = t.label;
+      btn.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+      btn.addEventListener('click', function () {
+        TABS.forEach(function (o) {
+          panes[o.id].classList.toggle('on', o.id === t.id);
+        });
+        [].forEach.call(tabBar.children, function (b) {
+          b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+        });
+      });
+      tabBar.appendChild(btn);
+      var pane = document.createElement('div');
+      pane.className = 'pane' + (i === 0 ? ' on' : '');
+      panes[t.id] = pane;
+    });
+    box.appendChild(tabBar);
+    TABS.forEach(function (t) { box.appendChild(panes[t.id]); });
+
     CONTROLS.forEach(function (c) {
+      var host = panes[c.tab] || box;
       var row = document.createElement('div');
       row.className = 'row';
       var name = document.createElement('span');
@@ -95,12 +150,12 @@
         }
       });
 
-      box.appendChild(row);
-      box.appendChild(slider);
+      host.appendChild(row);
+      host.appendChild(slider);
       if (c.hint) {
         var h = document.createElement('div');
         h.className = 'hint'; h.textContent = c.hint;
-        box.appendChild(h);
+        host.appendChild(h);
       }
     });
 

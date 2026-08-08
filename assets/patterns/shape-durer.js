@@ -32,6 +32,7 @@
     'uniform vec3 uCam;uniform vec3 uKeyDir;uniform vec3 uFillDir;' +
     'uniform float uAmbient;uniform float uKey;uniform float uFill;uniform float uContrast;' +
     'uniform float uMetal;uniform float uShine;' +
+    'uniform float uRim;uniform float uSheen;uniform float uGamma;' +
     'in vec3 vN;in vec3 vW;' +
     'out vec4 fragColor;' +
     'void main(){' +
@@ -41,12 +42,18 @@
     'float d=uAmbient+uKey*k+uFill*f;' +
     'float dn=clamp((d-uAmbient)/(uKey+uFill),0.0,1.0);' +
     'dn=clamp((dn-0.5)*uContrast+0.5,0.0,1.0);' +
-    /* Specular. Flat faces mean a face either catches the highlight or it does
-       not, so this reads as a hard metallic flash as the solid turns. */
+    'dn=pow(clamp(dn,0.0,1.0),uGamma);' +
     'vec3 Vv=normalize(uCam-vW);' +
     'vec3 Hv=normalize(uKeyDir+Vv);' +
-    'dn=clamp(dn+pow(max(dot(N,Hv),0.0),uShine)*uMetal,0.0,1.0);' +
-    'fragColor=vec4(dn,0.0,0.0,1.0);}';
+    'float ndh=max(dot(N,Hv),0.0);' +
+    /* Two specular lobes: a tight one for the hard metallic flash a flat face
+       throws as it turns, and a broad one that lifts the whole face a little
+       while it is anywhere near the light. Plus a Fresnel rim that catches
+       faces turned away from the camera. */
+    'dn+=pow(ndh,uShine)*uMetal;' +
+    'dn+=pow(ndh,4.0)*uSheen;' +
+    'dn+=pow(1.0-max(dot(N,Vv),0.0),3.0)*uRim;' +
+    'fragColor=vec4(clamp(dn,0.0,1.0),0.0,0.0,1.0);}';
 
   var H = Math.sqrt((3 * Math.sqrt(5) + 5) / 10);   /* rhombohedron half-height */
   var P = 2.0 / (1.0 + Math.sqrt(5));               /* truncation depth, 1/phi   */
@@ -158,9 +165,12 @@
        every frame. Ambient is deliberately not exposed: the shader normalises
        by (key + fill) after subtracting it, so moving it changes nothing. */
     LIVE: {
-      brightness: 0.60, depth: 0.50, contrast: 1.10,
-      key: 2.30, fill: 0.34, metal: 0.0, shine: 26,
-      angle: 0, size: 1.00, spin: 1.00
+      /* Owner's tuned set, carried over from the panel. */
+      brightness: 0.72, depth: 1.00, contrast: 2.50,
+      key: 6.00, fill: 2.00, metal: 0.0, shine: 120,
+      angle: -7, size: 0.98, spin: 1.45,
+      /* New, all at neutral so nothing moves until they are touched. */
+      elevation: 0, rim: 0, sheen: 0, gamma: 1.00, tumble: 1.00
     },
     KEY_DIR: norm3([-4.0, 4.5, 5.5]),
     FILL_DIR: norm3([3.0, -1.5, 2.0]),
