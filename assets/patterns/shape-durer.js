@@ -31,6 +31,7 @@
     'precision highp float;' +
     'uniform vec3 uCam;uniform vec3 uKeyDir;uniform vec3 uFillDir;' +
     'uniform float uAmbient;uniform float uKey;uniform float uFill;uniform float uContrast;' +
+    'uniform float uMetal;uniform float uShine;' +
     'in vec3 vN;in vec3 vW;' +
     'out vec4 fragColor;' +
     'void main(){' +
@@ -40,6 +41,11 @@
     'float d=uAmbient+uKey*k+uFill*f;' +
     'float dn=clamp((d-uAmbient)/(uKey+uFill),0.0,1.0);' +
     'dn=clamp((dn-0.5)*uContrast+0.5,0.0,1.0);' +
+    /* Specular. Flat faces mean a face either catches the highlight or it does
+       not, so this reads as a hard metallic flash as the solid turns. */
+    'vec3 Vv=normalize(uCam-vW);' +
+    'vec3 Hv=normalize(uKeyDir+Vv);' +
+    'dn=clamp(dn+pow(max(dot(N,Hv),0.0),uShine)*uMetal,0.0,1.0);' +
     'fragColor=vec4(dn,0.0,0.0,1.0);}';
 
   var H = Math.sqrt((3 * Math.sqrt(5) + 5) / 10);   /* rhombohedron half-height */
@@ -147,7 +153,15 @@
        did, which widens the spread of the shading term rather than just
        raising it - a uniform scale of key and fill would cancel out, since the
        shader normalises by their sum. */
-    LIGHTING: { ambient: 0.42, key: 2.30, fill: 0.34, contrast: 1.10 },
+    LIGHTING: { ambient: 0.42, key: 2.30, fill: 0.34, contrast: 1.10, metal: 0.0, shine: 26 },
+    /* Live, mutable copy the control panel writes to and the renderer reads
+       every frame. Ambient is deliberately not exposed: the shader normalises
+       by (key + fill) after subtracting it, so moving it changes nothing. */
+    LIVE: {
+      brightness: 0.60, depth: 0.50, contrast: 1.10,
+      key: 2.30, fill: 0.34, metal: 0.0, shine: 26,
+      angle: 0, size: 1.00, spin: 1.00
+    },
     KEY_DIR: norm3([-4.0, 4.5, 5.5]),
     FILL_DIR: norm3([3.0, -1.5, 2.0]),
     CAM: [0, 0, 7.0],

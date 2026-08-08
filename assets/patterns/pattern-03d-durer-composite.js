@@ -127,7 +127,8 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     gl.bindVertexArray(null);
 
     var MU = {};
-    ['uProj','uView','uModel','uRot','uCam','uKeyDir','uFillDir','uAmbient','uKey','uFill','uContrast']
+    ['uProj','uView','uModel','uRot','uCam','uKeyDir','uFillDir','uAmbient','uKey','uFill','uContrast',
+     'uMetal','uShine']
       .forEach(function (n) { MU[n] = gl.getUniformLocation(prog, n); });
 
     var tex = gl.createTexture();
@@ -190,14 +191,21 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
          is what turned the faces into flat plates with hard vector edges
          between them. Below 0.37 the solid drops under the field and reads as
          a hole. 0.45 to 0.90 keeps every part of it genuinely dithered. */
-      /* Brightness is asymmetric between the themes because the ink flips.
-         On the light page the ink is dark, so brighter means thinning out: the
-         whole band scales by 0.67 for the full third. On the dark page the ink
-         is white, so brighter means packing tighter - and the band already runs
-         to 0.936 against a hard ceiling of 1.0, leaving only a few percent of
-         headroom before faces fill solid and lose their dots. */
-      gl.uniform1f(U.uShapeLo, dark ? 0.52 : 0.627);
-      gl.uniform1f(U.uShapeHi, dark ? 0.97 : 0.278);
+      /* Brightness and depth drive the coverage band. Polarity flips with the
+         theme because the ink does: on the light page brighter means thinning
+         out, on the dark page it means packing tighter. Sliders at their
+         defaults reproduce the shipped values exactly. */
+      var LV = D.LIVE;
+      var half = LV.depth * 0.35;
+      if (dark) {
+        var cD = 0.35 + LV.brightness * 0.63;
+        gl.uniform1f(U.uShapeLo, cD - half);
+        gl.uniform1f(U.uShapeHi, cD + half);
+      } else {
+        var cL = 0.90 - LV.brightness * 0.75;
+        gl.uniform1f(U.uShapeLo, cL + half);
+        gl.uniform1f(U.uShapeHi, cL - half);
+      }
       ok = true;
       /* Only now does the layout reserve room for the solid, so a browser
          without the mesh gets the plain hero rather than an empty band. Guarded:
@@ -223,9 +231,19 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.useProgram(prog);
       gl.bindVertexArray(vao);
-      var spin = REDUCE ? 0.8 : t;
+      var L = D.LIVE;
+      gl.uniform1f(MU.uKey, L.key);
+      gl.uniform1f(MU.uFill, L.fill);
+      gl.uniform1f(MU.uContrast, L.contrast);
+      gl.uniform1f(MU.uMetal, L.metal);
+      gl.uniform1f(MU.uShine, L.shine);
+      var a = L.angle * Math.PI / 180;
+      var kd = D.KEY_DIR;
+      var ca = Math.cos(a), sa = Math.sin(a);
+      gl.uniform3f(MU.uKeyDir, kd[0] * ca - kd[2] * sa, kd[1], kd[0] * sa + kd[2] * ca);
+      var spin = REDUCE ? 0.8 : t * L.spin;
       var rot = D.mul3(D.rotX3(spin * D.SPIN_X), D.rotY3(spin * D.SPIN_Y));
-      gl.uniformMatrix4fv(MU.uModel, false, D.toMat4(rot, SOLID_SCALE));
+      gl.uniformMatrix4fv(MU.uModel, false, D.toMat4(rot, SOLID_SCALE * L.size));
       gl.uniformMatrix3fv(MU.uRot, false, rot);
       gl.drawArrays(gl.TRIANGLES, 0, count);
       gl.bindVertexArray(null);
@@ -331,6 +349,9 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     var theme = applyTheme();
     resize();
     if (solid) solid.sync();
+    /* The control panel needs the coverage band recomputed without waiting
+       for a theme change. */
+    if (solid) window.MLD_SHAPE_REFRESH = function () { applyTheme(); solid.sync(); };
     if ('ResizeObserver' in window) new ResizeObserver(resize).observe(container);
     else window.addEventListener('resize', resize);
 
