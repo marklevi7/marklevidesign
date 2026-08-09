@@ -165,11 +165,12 @@
        every frame. Ambient is deliberately not exposed: the shader normalises
        by (key + fill) after subtracting it, so moving it changes nothing. */
     LIVE: {
-      /* Owner's tuned set from the panel. */
-      key: 20.0, fill: 8.0, angle: 47, elevation: 41, rim: 1.38,
-      metal: 1.88, shine: 163, sheen: 1.50, gamma: 1.00,
+      /* Owner's tuned set from the panel. tumble 0 with the upright base
+         rotation means the solid turns in place without rolling. */
+      key: 20.0, fill: 8.0, angle: 75, elevation: 8, rim: 1.50,
+      metal: 2.00, shine: 232, sheen: 1.50, gamma: 1.78,
       brightness: 0.35, depth: 1.80, contrast: 1.50,
-      size: 0.98, spin: 1.05, tumble: 0.55
+      size: 0.98, spin: 0.50, tumble: 0.00
     },
     KEY_DIR: norm3([-4.0, 4.5, 5.5]),
     FILL_DIR: norm3([3.0, -1.5, 2.0]),
