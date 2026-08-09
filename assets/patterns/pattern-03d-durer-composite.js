@@ -334,7 +334,10 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     }
 
     function applyTheme() {
-      var t = THEMES[isDark() ? 'dark' : 'light'];
+      /* forceDark pins a host to the dark preset regardless of page theme -
+         the footer surface is the same dark in both themes, so dark ink and
+         dark motion are the ones that read on it. */
+      var t = THEMES[(over && over.forceDark) || isDark() ? 'dark' : 'light'];
       gl.useProgram(prog);
       gl.uniform3f(U.uColor, t.ink[0], t.ink[1], t.ink[2]);
       gl.uniform1f(U.uDensity, over && over.density != null ? over.density : t.density);
@@ -360,7 +363,8 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
        and this behaves as plain 03b. */
     /* Hero only. The stat card runs this same shader for its own dot field and
        must not get the solid as well. */
-    var wantsSolid = window.MLD_DURER && !container.classList.contains('mld-card-pattern');
+    var wantsSolid = window.MLD_DURER && !container.classList.contains('mld-card-pattern') &&
+      !container.classList.contains('mld-footer-pattern');
     var solid = wantsSolid ? buildSolid(gl, U, canvas, function () { return dpr; }) : null;
     if (solid) solid.setDitherProgram(prog);
 
@@ -513,7 +517,43 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     [200, 800, 2000].forEach(function (ms) { setTimeout(replace, ms); });
   }
 
-  function boot() { requestAnimationFrame(function () { requestAnimationFrame(function () { mount(); mountCard(); }); }); }
+  // The footer runs the same field as the hero - same density, same alpha,
+  // same upward drift - with no solid (see wantsSolid). The footer is the
+  // same dark surface in both themes, so the host is pinned to the dark
+  // preset. Like the cards: the host paints the footer colour underneath and
+  // the footer itself goes transparent only once the canvas actually runs.
+  var FOOTER = { forceDark: true };
+
+  function footerEl() { return document.querySelector('footer'); }
+
+  function placeFooter(host) {
+    var f = footerEl();
+    if (!f) return;
+    var r = f.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    host.style.top = Math.round(r.top + window.scrollY) + 'px';
+    host.style.left = Math.round(r.left + window.scrollX) + 'px';
+    host.style.width = Math.round(r.width) + 'px';
+    host.style.height = Math.round(r.height) + 'px';
+  }
+
+  function mountFooter() {
+    if (document.querySelector('.mld-footer-pattern')) return;
+    var f = footerEl();
+    if (!f) return;
+    var d = document.createElement('div');
+    d.className = 'mld-pattern mld-footer-pattern';
+    document.body.appendChild(d);
+    placeFooter(d);
+    if (!init(d, FOOTER)) { d.remove(); return; }
+    document.documentElement.classList.add('mld-footerfx');
+    var re = function () { placeFooter(d); };
+    window.addEventListener('resize', re, { passive: true });
+    if ('ResizeObserver' in window) new ResizeObserver(re).observe(document.body);
+    [200, 800, 2000].forEach(function (ms) { setTimeout(re, ms); });
+  }
+
+  function boot() { requestAnimationFrame(function () { requestAnimationFrame(function () { mount(); mountCard(); mountFooter(); }); }); }
   if (document.readyState === 'complete') boot();
   else window.addEventListener('load', boot);
 })();
