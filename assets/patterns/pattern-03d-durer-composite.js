@@ -43,8 +43,8 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
   // ramp — the hero's bottom-weighting has nothing to say inside a 180px box.
   // alpha is per-theme here: halving it in light mode moves the pixels half
   // way back to the card surface, which is what "50% lighter" means. Dark
-  // mode keeps 0.45 - there, weaker ink would read as darker, not lighter.
-  var CARD = { alpha: { light: 0.225, dark: 0.45 }, density: 0.55, gradientY: 0 };
+  // mode matches at 0.225 - 0.45 read too bright on the dark card.
+  var CARD = { alpha: { light: 0.225, dark: 0.225 }, density: 0.55, gradientY: 0 };
 
   function isDark() { return document.documentElement.classList.contains('dark'); }
 
