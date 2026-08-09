@@ -27,8 +27,8 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
   // ramp — the hero's bottom-weighting has nothing to say inside a 180px box.
   // alpha is per-theme here: halving it in light mode moves the pixels half
   // way back to the card surface, which is what "50% lighter" means. Dark
-  // mode keeps 0.45 - there, weaker ink would read as darker, not lighter.
-  var CARD = { alpha: { light: 0.225, dark: 0.45 }, density: 0.55, gradientY: 0 };
+  // mode matches at 0.225 - 0.45 read too bright on the dark card.
+  var CARD = { alpha: { light: 0.225, dark: 0.225 }, density: 0.55, gradientY: 0 };
   // The founder card on /about. Its ink is not the theme ink: it is the card's
   // own surface colour pushed - 25% brighter on the dark card light mode shows,
   // 10% darker on the white one in dark mode - so the pixels read as a texture
