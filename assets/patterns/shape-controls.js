@@ -99,6 +99,75 @@
     box.id = 'mld-ctl';
     box.innerHTML = '<h3>3D layer</h3>';
 
+    /* A lit ball, shaded with the exact maths the solid's faces use - same
+       key/fill mix, same contrast, falloff, metallic flash, sheen and rim,
+       same key direction from angle and elevation. A sphere shows the whole
+       ramp at once, so every slider's effect is visible here the moment it
+       moves. Bright means strong light; the dither then turns that into
+       dot density on the page. */
+    var ball = document.createElement('canvas');
+    ball.width = 120; ball.height = 120;
+    ball.style.cssText = 'display:block;margin:6px auto 2px;width:120px;height:120px';
+    box.appendChild(ball);
+    var cap = document.createElement('div');
+    cap.className = 'hint';
+    cap.style.textAlign = 'center';
+    cap.textContent = 'the lighting rig, on a ball - bright = lit';
+    box.appendChild(cap);
+
+    (function ballLoop() {
+      var g = ball.getContext('2d');
+      var img = g.createImageData(120, 120);
+      var last = '';
+      function frame() {
+        var L = D.LIVE;
+        var sig = [L.key, L.fill, L.angle, L.elevation, L.rim, L.metal,
+                   L.shine, L.sheen, L.gamma, L.contrast].join(',');
+        if (sig !== last) {
+          last = sig;
+          /* Same key rotation as the renderer: azimuth about Y, then
+             elevation. Fill stays on the rig's fixed arm. */
+          var a = L.angle * Math.PI / 180, e = L.elevation * Math.PI / 180;
+          var kd = D.KEY_DIR;
+          var ca = Math.cos(a), sa = Math.sin(a);
+          var kx = kd[0] * ca - kd[2] * sa, ky0 = kd[1], kz0 = kd[0] * sa + kd[2] * ca;
+          var ce = Math.cos(e), se = Math.sin(e);
+          var ky = ky0 * ce - kz0 * se, kz = ky0 * se + kz0 * ce;
+          var kl = Math.hypot(kx, ky, kz) || 1;
+          kx /= kl; ky /= kl; kz /= kl;
+          var fd = D.FILL_DIR;
+          /* Half vector for the speculars, with the viewer straight on. */
+          var hx = kx, hy = ky, hz = kz + 1;
+          var hl = Math.hypot(hx, hy, hz) || 1;
+          hx /= hl; hy /= hl; hz /= hl;
+          var d = img.data, R = 56, cx = 60, cy = 60;
+          for (var py = 0; py < 120; py++) {
+            for (var px = 0; px < 120; px++) {
+              var i = (py * 120 + px) * 4;
+              var nx = (px - cx) / R, nyy = -(py - cy) / R;
+              var rr = nx * nx + nyy * nyy;
+              if (rr > 1) { d[i + 3] = 0; continue; }
+              var nz = Math.sqrt(1 - rr);
+              var k = Math.max(nx * kx + nyy * ky + nz * kz, 0);
+              var f = Math.max(nx * fd[0] + nyy * fd[1] + nz * fd[2], 0);
+              var dn = Math.min(Math.max((L.key * k + L.fill * f) / (L.key + L.fill), 0), 1);
+              dn = Math.min(Math.max((dn - 0.5) * L.contrast + 0.5, 0), 1);
+              dn = Math.pow(dn, L.gamma);
+              var ndh = Math.max(nx * hx + nyy * hy + nz * hz, 0);
+              dn += Math.pow(ndh, L.shine) * L.metal;
+              dn += Math.pow(ndh, 4) * L.sheen;
+              dn += Math.pow(1 - nz, 3) * L.rim;
+              var v = Math.round(Math.min(Math.max(dn, 0), 1) * 255);
+              d[i] = v; d[i + 1] = v; d[i + 2] = v; d[i + 3] = 255;
+            }
+          }
+          g.putImageData(img, 0, 0);
+        }
+        if (document.getElementById('mld-ctl')) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    })();
+
     var defaults = JSON.parse(JSON.stringify(D.LIVE));
 
     var tabBar = document.createElement('div');
