@@ -33,8 +33,8 @@ a {
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-@media(max-width:767px){.cyhvnff{font-size:1em}.mld-stat-label{font-size:1em}}main>section{width:100%;box-sizing:border-box}#header{transition:background-color .25s ease,-webkit-backdrop-filter .25s ease,backdrop-filter .25s ease}html:not(.mld-scrolled) #header{background-color:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}html.mld-scrolled #header{-webkit-backdrop-filter:blur(var(--mld-blur));backdrop-filter:blur(var(--mld-blur))}#header a.w-link[href="/"]{font-size:1.2em}/* mld-linkcolor: one colour for inline links - the accent family the CV link already uses */a.w-rich-text-link{color:var(--color-accent)}html.dark a.w-rich-text-link{color:var(--color-accent-hover)}</style>
-<style id="mld-theme-css">:root{--mld-blur:7.35px}#mld-theme-host{position:fixed;z-index:5;transform:translateY(-50%);display:flex;align-items:center;pointer-events:auto}#theme-btn{width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--color-black);cursor:pointer;padding:0}#theme-btn svg{width:26px;height:26px}#theme-btn .moon{display:none}html.dark #theme-btn .sun{display:none}html.dark #theme-btn .moon{display:block}
+@media(max-width:767px){.cyhvnff{font-size:1em}.mld-stat-label{font-size:1em}}main>section{width:100%;box-sizing:border-box}#header{transition:background-color .25s ease,-webkit-backdrop-filter .25s ease,backdrop-filter .25s ease}html:not(.mld-scrolled) #header{background-color:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}html.mld-scrolled #header{-webkit-backdrop-filter:blur(var(--mld-blur));backdrop-filter:blur(var(--mld-blur))}#header a.w-link[href="/"]{font-size:1.2em}/* mld-linkcolor: one colour for inline links - the accent family the CV link already uses */a.w-rich-text-link{color:var(--color-accent)}html.dark a.w-rich-text-link{color:var(--color-accent-hover)}/* mld-logopill */@media(min-width:992px){#header a.c1wm8bso{border-radius:999px}}</style>
+<style id="mld-theme-css">:root{--mld-blur:7.35px}#mld-theme-host{position:fixed;z-index:5;transform:translateY(-50%);display:flex;align-items:center;pointer-events:auto}#theme-btn{width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--color-black);cursor:pointer;padding:0}#theme-btn svg{width:26px;height:26px}#theme-btn .sun{display:none}html.dark #theme-btn .moon{display:none}html.dark #theme-btn .sun{display:block}
 html.dark{color-scheme:dark;--color-white:rgb(32 29 39);--color-black:rgb(255 255 255);--color-black-light:rgb(242 242 242);--color-grey:rgb(48 44 58);--color-white-hover:rgb(48 44 58)}
 html.dark body{background-color:rgb(32 29 39)}
 html.dark .cramk3n{background-color:#201d2769}
@@ -89,7 +89,6 @@ function build(){
  if(document.getElementById(HOST))return;
  var burger=document.getElementById('burger-btn');
  var header=document.getElementById('header');
- if(!header)return;
  var host=document.createElement('div');host.id=HOST;
  var t=document.createElement('button');
  t.id='theme-btn';t.type='button';t.setAttribute('aria-label','Toggle dark mode');
@@ -97,6 +96,7 @@ function build(){
  t.addEventListener('click',function(){var d=document.documentElement.classList.toggle('dark');try{localStorage.setItem('mld-theme',d?'dark':'light')}catch(e){}});
  host.appendChild(t);
  document.body.appendChild(host);   /* outside any React subtree */
+ if(!header){host.style.top='40px';host.style.right='16px';return;}
  position();
  window.addEventListener('resize',settle,{passive:true}); window.addEventListener('scroll',settle,{passive:true}); window.addEventListener('orientationchange',settle); window.addEventListener('pageshow',settle); header.addEventListener('transitionend',position); if(window.visualViewport){window.visualViewport.addEventListener('resize',settle);window.visualViewport.addEventListener('scroll',settle);} new MutationObserver(settle).observe(document.documentElement,{attributes:true,attributeFilter:['class']});
  if('ResizeObserver' in window)new ResizeObserver(position).observe(header);
@@ -116,7 +116,10 @@ function position(){
 function boot(){requestAnimationFrame(function(){requestAnimationFrame(build)});}
 if(document.readyState==='complete')boot();
 else window.addEventListener('load',boot);
-})();</script><script data-cfasync="false" id="mld-scrollhdr">(function(){var d=document.documentElement;function u(){if(window.scrollY>8)d.classList.add("mld-scrolled");else d.classList.remove("mld-scrolled");}u();window.addEventListener("scroll",u,{passive:true});})();</script><script data-cfasync="false" id="mld-autorefresh" data-build="780a085b9d">(function(){
+/* A hydration error makes React client-render into body, which sweeps away foreign
+   children like this host. build() is idempotent, so retry a few times after load. */
+[1500,3000,5000,8000].forEach(function(ms){setTimeout(boot,ms)});
+})();</script><script data-cfasync="false" id="mld-scrollhdr">(function(){var d=document.documentElement;function u(){if(window.scrollY>8)d.classList.add("mld-scrolled");else d.classList.remove("mld-scrolled");}u();window.addEventListener("scroll",u,{passive:true});})();</script><script data-cfasync="false" id="mld-autorefresh" data-build="646cb18b4b">(function(){
 var s=document.getElementById('mld-autorefresh');if(!s)return;var id=s.getAttribute('data-build');if(!id)return;var busy=false;
 var lastTouch=0;
 ['pointerdown','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,function(){lastTouch=Date.now();},{passive:true,capture:true});});
@@ -141,7 +144,7 @@ function check(){
 setTimeout(check,2500);
 setInterval(check,60000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
-})();</script><script data-cfasync="false" id="mld-trimgap">(function(){/* Hydration leaves a whitespace-only text node as a direct child of <body>. It is not in the served HTML - React puts it there - and it renders as an empty line box after the footer, which is the white strip below the dark footer on mobile. Removing the node is safe: nothing on these pages re-renders, and it carries no content. */function trim(){var n=document.body&&document.body.firstChild,x;while(n){x=n.nextSibling;if(n.nodeType===3&&!/\S/.test(n.nodeValue))n.parentNode.removeChild(n);n=x;}}function boot(){requestAnimationFrame(function(){requestAnimationFrame(trim)});}if(document.readyState==="complete")boot();else window.addEventListener("load",boot);})();</script><script data-cfasync="false" id="mld-menu-guard">(function(){
+})();</script><script data-cfasync="false" id="mld-trimgap">(function(){/* Hydration leaves a whitespace-only text node as a direct child of <body>. It is not in the served HTML - React puts it there - and it renders as an empty line box after the footer, which is the white strip below the dark footer on mobile. Removing the node is safe: nothing on these pages re-renders, and it carries no content. */function trim(){var n=document.body&&document.body.firstChild,x;while(n){x=n.nextSibling;if(n.nodeType===3&&!/\S/.test(n.nodeValue))n.parentNode.removeChild(n);n=x;}}function boot(){requestAnimationFrame(function(){requestAnimationFrame(trim)});}if(document.readyState==="complete")boot();else window.addEventListener("load",boot);[1500,3000,5000,8000].forEach(function(ms){setTimeout(boot,ms)});})();</script><script data-cfasync="false" id="mld-menu-guard">(function(){
 /* Safety net. The menu is React-driven; if hydration is ever disturbed (an
    edge rewrite, a slow script, a GPU stall) its handler can be lost and the
    burger goes dead. This attaches no DOM, only listeners, so it cannot itself

@@ -303,4 +303,5 @@
   }
   if (document.readyState === 'complete') boot();
   else window.addEventListener('load', boot);
+  [1500, 3000, 5000, 8000].forEach(function (ms) { setTimeout(boot, ms); });
 })();
