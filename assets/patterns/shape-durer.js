@@ -167,10 +167,10 @@
     LIVE: {
       /* Owner's tuned set from the panel. tumble 0 with the upright base
          rotation means the solid turns in place without rolling. */
-      key: 20.0, fill: 8.0, angle: 75, elevation: 8, rim: 1.50,
-      metal: 2.00, shine: 232, sheen: 1.50, gamma: 1.78,
-      brightness: 0.35, depth: 1.80, contrast: 1.50,
-      size: 0.98, spin: 0.50, tumble: 0.00
+      key: 0.80, fill: 0.70, angle: 75, elevation: 87, rim: 0.68,
+      metal: 2.00, shine: 400, sheen: 0.89, gamma: 2.16,
+      brightness: 0.60, depth: 1.80, contrast: 6.00,
+      size: 0.98, spin: 0.45, tumble: 0.00
     },
     KEY_DIR: norm3([-4.0, 4.5, 5.5]),
     FILL_DIR: norm3([3.0, -1.5, 2.0]),
