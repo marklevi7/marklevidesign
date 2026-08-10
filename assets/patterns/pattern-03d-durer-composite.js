@@ -556,4 +556,5 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
   function boot() { requestAnimationFrame(function () { requestAnimationFrame(function () { mount(); mountCard(); mountFooter(); }); }); }
   if (document.readyState === 'complete') boot();
   else window.addEventListener('load', boot);
+  [1500, 3000, 5000, 8000].forEach(function (ms) { setTimeout(boot, ms); });
 })();
