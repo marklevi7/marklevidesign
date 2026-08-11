@@ -7,16 +7,18 @@
    baking in. Body-level, mounted after load, so React's DOM is untouched. */
 (function () {
   var ROWS = [
-    { key: 'ts', label: 'Title px',  sel: 'section:has(#hero-calendly) h1', prop: 'font-size',   step: 1,   min: 24,  max: 120, unit: 'px' },
-    { key: 'tw', label: 'Title wt',  sel: 'section:has(#hero-calendly) h1', prop: 'font-weight', step: 100, min: 300, max: 900, unit: '' },
-    { key: 'ss', label: 'Sub px',    sel: 'h2.mld-kicker',                  prop: 'font-size',   step: 1,   min: 14,  max: 48,  unit: 'px' },
-    { key: 'sw', label: 'Sub wt',    sel: 'h2.mld-kicker',                  prop: 'font-weight', step: 100, min: 300, max: 900, unit: '' }
+    { key: 'ts', label: 'T px', sel: 'section:has(#hero-calendly) h1', prop: 'font-size',   step: 1,    min: 24,  max: 120 },
+    { key: 'tw', label: 'T wt', sel: 'section:has(#hero-calendly) h1', prop: 'font-weight', step: 100,  min: 300, max: 900 },
+    { key: 'tl', label: 'T lh', sel: 'section:has(#hero-calendly) h1', prop: 'line-height', step: 0.05, min: 0.8, max: 2, dec: 2 },
+    { key: 'ss', label: 'S px', sel: 'h2.mld-kicker',                  prop: 'font-size',   step: 1,    min: 14,  max: 48 },
+    { key: 'sw', label: 'S wt', sel: 'h2.mld-kicker',                  prop: 'font-weight', step: 100,  min: 300, max: 900 },
+    { key: 'sl', label: 'S lh', sel: 'h2.mld-kicker',                  prop: 'line-height', step: 0.05, min: 0.8, max: 2, dec: 2 }
   ];
 
   var CSS =
     '#mld-type{position:fixed;z-index:7;top:96px;left:50%;transform:translateX(-50%);' +
-    'display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;' +
-    'max-width:calc(100vw - 16px);padding:8px;border-radius:var(--border-radius-m);' +
+    'display:flex;flex-wrap:nowrap;gap:6px;justify-content:flex-start;align-items:center;' +
+    'max-width:calc(100vw - 16px);overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px;border-radius:var(--border-radius-m);' +
     'background:color-mix(in srgb,var(--color-grey) 80%,transparent);' +
     '-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);' +
     'font-family:DM Mono,monospace;font-size:12px;color:var(--color-black)}' +
@@ -42,17 +44,25 @@
     var vals = {};
     ROWS.forEach(function (r) {
       var el = document.querySelector(r.sel);
-      var v = el ? parseFloat(getComputedStyle(el)[r.prop === 'font-size' ? 'fontSize' : 'fontWeight']) : r.min;
-      vals[r.key] = Math.round(v);
+      var v = r.min;
+      if (el) {
+        var cs = getComputedStyle(el);
+        if (r.prop === 'font-size') v = parseFloat(cs.fontSize);
+        else if (r.prop === 'font-weight') v = parseFloat(cs.fontWeight);
+        else v = parseFloat(cs.lineHeight) / parseFloat(cs.fontSize);
+      }
+      vals[r.key] = r.dec ? Math.round(v * 100) / 100 : Math.round(v);
     });
 
     function apply() {
       out.textContent =
-        'section:has(#hero-calendly) h1{font-size:' + vals.ts + 'px!important;font-weight:' + vals.tw + '!important}' +
-        'h2.mld-kicker{font-size:' + vals.ss + 'px!important;font-weight:' + vals.sw + '!important}';
+        'section:has(#hero-calendly) h1{font-size:' + vals.ts + 'px!important;font-weight:' + vals.tw +
+        '!important;line-height:' + vals.tl + '!important}' +
+        'h2.mld-kicker{font-size:' + vals.ss + 'px!important;font-weight:' + vals.sw +
+        '!important;line-height:' + vals.sl + '!important}';
       ROWS.forEach(function (r) {
         var s = document.querySelector('#mld-type [data-val="' + r.key + '"]');
-        if (s) s.textContent = vals[r.key];
+        if (s) s.textContent = r.dec ? vals[r.key].toFixed(r.dec) : vals[r.key];
       });
     }
 
@@ -68,10 +78,10 @@
       var plus = document.createElement('button'); plus.type = 'button'; plus.textContent = '+';
       plus.setAttribute('aria-label', r.label + ' plus');
       minus.addEventListener('click', function () {
-        vals[r.key] = Math.max(r.min, vals[r.key] - r.step); apply();
+        vals[r.key] = Math.max(r.min, Math.round((vals[r.key] - r.step) * 100) / 100); apply();
       });
       plus.addEventListener('click', function () {
-        vals[r.key] = Math.min(r.max, vals[r.key] + r.step); apply();
+        vals[r.key] = Math.min(r.max, Math.round((vals[r.key] + r.step) * 100) / 100); apply();
       });
       g.appendChild(lbl); g.appendChild(minus); g.appendChild(val); g.appendChild(plus);
       bar.appendChild(g);
@@ -80,8 +90,8 @@
     var cp = document.createElement('button');
     cp.type = 'button'; cp.className = 'cp'; cp.textContent = 'COPY';
     cp.addEventListener('click', function () {
-      var text = 'hero type: title ' + vals.ts + 'px/' + vals.tw +
-                 ', subtitle ' + vals.ss + 'px/' + vals.sw;
+      var text = 'hero type: title ' + vals.ts + 'px/' + vals.tw + '/lh' + vals.tl +
+                 ', subtitle ' + vals.ss + 'px/' + vals.sw + '/lh' + vals.sl;
       var done = function () { cp.textContent = 'OK'; setTimeout(function () { cp.textContent = 'COPY'; }, 1200); };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(done, done);
