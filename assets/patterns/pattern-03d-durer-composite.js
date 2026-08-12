@@ -531,10 +531,14 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     if (!f) return;
     var r = f.getBoundingClientRect();
     if (!r.width || !r.height) return;
+    /* Pages can ask for the field to run past the footer's end, so the page
+       does not finish on a straight canvas edge - the host is what stretches
+       the document, and the base-flip colours whatever lies beyond. */
+    var ext = window.MLD_FOOTER_EXTEND || 0;
     host.style.top = Math.round(r.top + window.scrollY) + 'px';
     host.style.left = Math.round(r.left + window.scrollX) + 'px';
     host.style.width = Math.round(r.width) + 'px';
-    host.style.height = Math.round(r.height) + 'px';
+    host.style.height = Math.round(r.height + ext) + 'px';
   }
 
   function mountFooter() {
