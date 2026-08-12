@@ -10,13 +10,14 @@
     { key: 'ts', label: 'T px', sel: 'section:has(#hero-calendly) h1', prop: 'font-size',   step: 1,    min: 24,  max: 120 },
     { key: 'tw', label: 'T wt', sel: 'section:has(#hero-calendly) h1', prop: 'font-weight', step: 100,  min: 300, max: 900 },
     { key: 'tl', label: 'T lh', sel: 'section:has(#hero-calendly) h1', prop: 'line-height', step: 0.05, min: 0.8, max: 2, dec: 2 },
+    { key: 'ty', label: 'T y',  sel: 'section:has(#hero-calendly) h1', prop: 'margin-top',  step: 4,    min: -120, max: 120 },
     { key: 'ss', label: 'S px', sel: 'h2.mld-kicker',                  prop: 'font-size',   step: 1,    min: 14,  max: 48 },
     { key: 'sw', label: 'S wt', sel: 'h2.mld-kicker',                  prop: 'font-weight', step: 100,  min: 300, max: 900 },
     { key: 'sl', label: 'S lh', sel: 'h2.mld-kicker',                  prop: 'line-height', step: 0.05, min: 0.8, max: 2, dec: 2 }
   ];
 
   var CSS =
-    '#mld-type{position:fixed;z-index:7;top:96px;left:50%;transform:translateX(-50%);' +
+    '#mld-type{position:absolute;z-index:7;left:50%;transform:translateX(-50%);' +
     'display:flex;flex-wrap:nowrap;gap:6px;justify-content:flex-start;align-items:center;' +
     'max-width:calc(100vw - 16px);overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px;border-radius:var(--border-radius-m);' +
     'background:color-mix(in srgb,var(--color-grey) 80%,transparent);' +
@@ -49,6 +50,7 @@
         var cs = getComputedStyle(el);
         if (r.prop === 'font-size') v = parseFloat(cs.fontSize);
         else if (r.prop === 'font-weight') v = parseFloat(cs.fontWeight);
+        else if (r.prop === 'margin-top') v = parseFloat(cs.marginTop) || 0;
         else v = parseFloat(cs.lineHeight) / parseFloat(cs.fontSize);
       }
       vals[r.key] = r.dec ? Math.round(v * 100) / 100 : Math.round(v);
@@ -57,7 +59,7 @@
     function apply() {
       out.textContent =
         'section:has(#hero-calendly) h1{font-size:' + vals.ts + 'px!important;font-weight:' + vals.tw +
-        '!important;line-height:' + vals.tl + '!important}' +
+        '!important;line-height:' + vals.tl + '!important;margin-top:' + vals.ty + 'px!important}' +
         'h2.mld-kicker{font-size:' + vals.ss + 'px!important;font-weight:' + vals.sw +
         '!important;line-height:' + vals.sl + '!important}';
       ROWS.forEach(function (r) {
@@ -90,7 +92,7 @@
     var cp = document.createElement('button');
     cp.type = 'button'; cp.className = 'cp'; cp.textContent = 'COPY';
     cp.addEventListener('click', function () {
-      var text = 'hero type: title ' + vals.ts + 'px/' + vals.tw + '/lh' + vals.tl +
+      var text = 'hero type: title ' + vals.ts + 'px/' + vals.tw + '/lh' + vals.tl + '/y' + vals.ty +
                  ', subtitle ' + vals.ss + 'px/' + vals.sw + '/lh' + vals.sl;
       var done = function () { cp.textContent = 'OK'; setTimeout(function () { cp.textContent = 'COPY'; }, 1200); };
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -100,6 +102,16 @@
     bar.appendChild(cp);
 
     document.body.appendChild(bar);
+    function place() {
+      var cta = document.getElementById('hero-calendly');
+      if (!cta) { bar.style.top = '96px'; return; }
+      var r = cta.getBoundingClientRect();
+      bar.style.top = Math.round(r.bottom + window.scrollY + 16) + 'px';
+    }
+    place();
+    window.addEventListener('resize', place, { passive: true });
+    if ('ResizeObserver' in window) new ResizeObserver(place).observe(document.body);
+    [200, 800, 2000].forEach(function (ms) { setTimeout(place, ms); });
     apply();
   }
 
