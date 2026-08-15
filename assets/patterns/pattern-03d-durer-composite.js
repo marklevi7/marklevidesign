@@ -557,7 +557,18 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     [200, 800, 2000].forEach(function (ms) { setTimeout(re, ms); });
   }
 
-  function boot() { requestAnimationFrame(function () { requestAnimationFrame(function () { mount(); mountCard(); mountFooter(); }); }); }
+  // Pages other than the homepage set MLD_FOOTER_ONLY: they carry a footer
+  // field but no hero and no stat cards. The guard is explicit because
+  // #hero-calendly also names the footer's booking button, so heroEl() alone
+  // would happily mount a hero field over the footer.
+  function boot() {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (!window.MLD_FOOTER_ONLY) { mount(); mountCard(); }
+        mountFooter();
+      });
+    });
+  }
   if (document.readyState === 'complete') boot();
   else window.addEventListener('load', boot);
   [1500, 3000, 5000, 8000].forEach(function (ms) { setTimeout(boot, ms); });
