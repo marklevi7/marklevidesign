@@ -100,10 +100,10 @@
 
     document.body.appendChild(bar);
     function place() {
-      var cta = document.getElementById('hero-calendly');
-      if (!cta) { bar.style.top = '96px'; return; }
-      var r = cta.getBoundingClientRect();
-      bar.style.top = Math.round(r.bottom + window.scrollY + 16) + 'px';
+      var h = document.querySelector('h2:not(.mld-kicker)');
+      if (!h) { bar.style.top = '96px'; return; }
+      var r = h.getBoundingClientRect();
+      bar.style.top = Math.round(r.top + window.scrollY - bar.offsetHeight - 16) + 'px';
     }
     place();
     window.addEventListener('resize', place, { passive: true });
