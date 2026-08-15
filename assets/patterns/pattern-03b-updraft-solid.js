@@ -333,10 +333,7 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     // so a browser without WebGL2 keeps a solid grey card instead of a hole.
     document.documentElement.classList.add('mld-cardfx');
     var replace = function () { placeCard(d); };
-    window.addEventListener('resize', replace, { passive: true });
-    if ('ResizeObserver' in window) new ResizeObserver(replace).observe(document.body);
-    // Late web fonts and images shift the section; re-measure a few times.
-    [200, 800, 2000].forEach(function (ms) { setTimeout(replace, ms); });
+    track(c, d, replace);
   }
 
   // The founder card on /about: the same window-onto-the-field trick as the
@@ -350,6 +347,39 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
       if (/TL;DR/.test(hs[i].textContent)) return hs[i].closest('div');
     }
     return null;
+  }
+
+  // The host is absolutely positioned at the card's document coordinates, so
+  // any late layout shift leaves the painted surface sitting somewhere the
+  // card no longer is - on a phone that showed up as the founder card landing
+  // over the Contact block. Watch the card itself rather than the body, wait
+  // for fonts, and re-check on scroll for a while: if the two ever drift
+  // apart, the next frame puts them back together.
+  function track(el, host, place) {
+    window.addEventListener('resize', place, { passive: true });
+    if ('ResizeObserver' in window) {
+      var ro = new ResizeObserver(place);
+      ro.observe(el);
+      ro.observe(document.body);
+    }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(place);
+    window.addEventListener('load', place);
+    [100, 300, 800, 1500, 3000, 6000].forEach(function (ms) { setTimeout(place, ms); });
+    // A drift check on scroll, cheap and self-cancelling once things settle.
+    var ticking = false, checks = 0;
+    var onScroll = function () {
+      if (ticking || checks > 40) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        ticking = false; checks++;
+        var r = el.getBoundingClientRect();
+        if (!r.height) return;
+        var want = Math.round(r.top + window.scrollY);
+        if (Math.abs(parseFloat(host.style.top) - want) > 1 ||
+            Math.abs(parseFloat(host.style.height) - Math.round(r.height)) > 1) place();
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
   }
 
   function placeFounder(host) {
@@ -374,9 +404,7 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     if (!init(d, FOUNDER)) { d.remove(); return; }
     document.documentElement.classList.add('mld-founderfx');
     var re = function () { placeFounder(d); };
-    window.addEventListener('resize', re, { passive: true });
-    if ('ResizeObserver' in window) new ResizeObserver(re).observe(document.body);
-    [200, 800, 2000].forEach(function (ms) { setTimeout(re, ms); });
+    track(c, d, re);
   }
 
   function boot() { requestAnimationFrame(function () { requestAnimationFrame(function () { mount(); mountCard(); mountFounder(); }); }); }
