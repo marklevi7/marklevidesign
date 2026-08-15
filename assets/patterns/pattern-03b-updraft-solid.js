@@ -112,12 +112,12 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     // same per-dot-cell window 03d uses for the solid - so it comes out
     // dithered on the 4px grid and the ripples still sweep across it.
     var photoTex = null;
-    // Full card width, flush with the card's top edge; the 5:4 crop below
-    // keeps head and shoulders in frame at that aspect.
+    // Full card width, flush with the card's top edge, same aspect as the
+    // tight head crop below.
     function placePhoto() {
       if (!photoTex) return;
       var W = canvas.width, H = canvas.height;
-      var pw = W, ph = Math.round(W * 0.8);
+      var pw = W, ph = Math.round(W * 0.957);
       gl.useProgram(prog);
       gl.uniform2f(U.uShapeOrigin, 0, H - ph);
       gl.uniform2f(U.uShapeSize, pw, ph);
@@ -128,10 +128,12 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
       var pimg = new Image();
       pimg.onload = function () {
         var c2 = document.createElement('canvas');
-        c2.width = 640; c2.height = 512;
+        c2.width = 640; c2.height = 612;
         var ctx = c2.getContext('2d');
-        // 5:4 crop from the top of the source - full width, head and shoulders.
-        ctx.drawImage(pimg, 0, 0, pimg.width, pimg.width * 0.8, 0, 0, 640, 512);
+        // The owner's framing: a tight head crop, measured off the source -
+        // face ~44% of the frame width, hair just under the top edge.
+        ctx.drawImage(pimg, pimg.width * 0.127, pimg.height * 0.057,
+                      pimg.width * 0.688, pimg.height * 0.626, 0, 0, 640, 612);
         var id = ctx.getImageData(0, 0, c2.width, c2.height), px = id.data;
         // Key the studio backdrop by flood-filling from the borders: colour
         // tolerance alone eats the beard greys, connectivity does not.
