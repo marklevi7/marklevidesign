@@ -6,14 +6,14 @@
    over every breakpoint rule while playing; Copy hands the numbers back for
    baking in. Body-level, mounted after load, so React's DOM is untouched. */
 (function () {
+  /* The hero is done - the panel now drives the section titles (every h2 that
+     is not the hero kicker: Testimonials, Let's talk, and friends). */
+  var SEL = 'h2:not(.mld-kicker)';
   var ROWS = [
-    { key: 'ts', label: 'T px', sel: 'section:has(#hero-calendly) h1', prop: 'font-size',   step: 1,    min: 24,  max: 120 },
-    { key: 'tw', label: 'T wt', sel: 'section:has(#hero-calendly) h1', prop: 'font-weight', step: 100,  min: 300, max: 900 },
-    { key: 'tl', label: 'T lh', sel: 'section:has(#hero-calendly) h1', prop: 'line-height', step: 0.05, min: 0.8, max: 2, dec: 2 },
-    { key: 'ty', label: 'T y',  sel: 'section:has(#hero-calendly) h1', prop: 'margin-top',  step: 4,    min: -120, max: 120 },
-    { key: 'ss', label: 'S px', sel: 'h2.mld-kicker',                  prop: 'font-size',   step: 1,    min: 14,  max: 48 },
-    { key: 'sw', label: 'S wt', sel: 'h2.mld-kicker',                  prop: 'font-weight', step: 100,  min: 300, max: 900 },
-    { key: 'sl', label: 'S lh', sel: 'h2.mld-kicker',                  prop: 'line-height', step: 0.05, min: 0.8, max: 2, dec: 2 }
+    { key: 'hs', label: 'H2 px', sel: SEL, prop: 'font-size',      step: 1,    min: 16, max: 96 },
+    { key: 'hw', label: 'H2 wt', sel: SEL, prop: 'font-weight',    step: 100,  min: 300, max: 900 },
+    { key: 'hl', label: 'H2 lh', sel: SEL, prop: 'line-height',    step: 0.05, min: 0.8, max: 2,  dec: 2 },
+    { key: 'hx', label: 'H2 ls', sel: SEL, prop: 'letter-spacing', step: 0.2,  min: -4,  max: 6,  dec: 1 }
   ];
 
   var CSS =
@@ -50,7 +50,7 @@
         var cs = getComputedStyle(el);
         if (r.prop === 'font-size') v = parseFloat(cs.fontSize);
         else if (r.prop === 'font-weight') v = parseFloat(cs.fontWeight);
-        else if (r.prop === 'margin-top') v = parseFloat(cs.marginTop) || 0;
+        else if (r.prop === 'letter-spacing') v = parseFloat(cs.letterSpacing) || 0;
         else v = parseFloat(cs.lineHeight) / parseFloat(cs.fontSize);
       }
       vals[r.key] = r.dec ? Math.round(v * 100) / 100 : Math.round(v);
@@ -58,10 +58,8 @@
 
     function apply() {
       out.textContent =
-        'section:has(#hero-calendly) h1{font-size:' + vals.ts + 'px!important;font-weight:' + vals.tw +
-        '!important;line-height:' + vals.tl + '!important;margin-top:' + vals.ty + 'px!important}' +
-        'h2.mld-kicker{font-size:' + vals.ss + 'px!important;font-weight:' + vals.sw +
-        '!important;line-height:' + vals.sl + '!important}';
+        'h2:not(.mld-kicker){font-size:' + vals.hs + 'px!important;font-weight:' + vals.hw +
+        '!important;line-height:' + vals.hl + '!important;letter-spacing:' + vals.hx + 'px!important}';
       ROWS.forEach(function (r) {
         var s = document.querySelector('#mld-type [data-val="' + r.key + '"]');
         if (s) s.textContent = r.dec ? vals[r.key].toFixed(r.dec) : vals[r.key];
@@ -92,8 +90,7 @@
     var cp = document.createElement('button');
     cp.type = 'button'; cp.className = 'cp'; cp.textContent = 'COPY';
     cp.addEventListener('click', function () {
-      var text = 'hero type: title ' + vals.ts + 'px/' + vals.tw + '/lh' + vals.tl + '/y' + vals.ty +
-                 ', subtitle ' + vals.ss + 'px/' + vals.sw + '/lh' + vals.sl;
+      var text = 'h2 titles: ' + vals.hs + 'px/' + vals.hw + '/lh' + vals.hl + '/ls' + vals.hx + 'px';
       var done = function () { cp.textContent = 'OK'; setTimeout(function () { cp.textContent = 'COPY'; }, 1200); };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(done, done);
