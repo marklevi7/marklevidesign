@@ -90,7 +90,9 @@
     var cp = document.createElement('button');
     cp.type = 'button'; cp.className = 'cp'; cp.textContent = 'COPY';
     cp.addEventListener('click', function () {
-      var text = 'h2 titles: ' + vals.hs + 'px/' + vals.hw + '/lh' + vals.hl + '/ls' + vals.hx + 'px';
+      var scr = window.innerWidth < 992 ? 'MOBILE' : 'DESKTOP';
+      var text = 'h2 titles [' + scr + ', ' + window.innerWidth + 'px wide]: ' +
+                 vals.hs + 'px/' + vals.hw + '/lh' + vals.hl + '/ls' + vals.hx + 'px';
       var done = function () { cp.textContent = 'OK'; setTimeout(function () { cp.textContent = 'COPY'; }, 1200); };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(done, done);
