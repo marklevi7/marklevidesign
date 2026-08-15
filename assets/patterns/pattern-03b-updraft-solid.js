@@ -111,17 +111,15 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     // The founder photo, luminance only, dropped into the feed through the
     // same per-dot-cell window 03d uses for the solid - so it comes out
     // dithered on the 4px grid and the ripples still sweep across it.
-    var photoTex = null, photoAspect = 1;
+    var photoTex = null;
+    // Full card width, flush with the card's top edge; the 5:4 crop below
+    // keeps head and shoulders in frame at that aspect.
     function placePhoto() {
       if (!photoTex) return;
       var W = canvas.width, H = canvas.height;
-      var small = W / dpr < 500;
-      var pad = (small ? 32 : 36) * dpr;
-      var ph = Math.min((small ? 180 : 288) * dpr, H * 0.55);
-      var pw = ph * photoAspect;
-      if (pw > W * 0.92) { pw = W * 0.92; ph = pw / photoAspect; }
+      var pw = W, ph = Math.round(W * 0.8);
       gl.useProgram(prog);
-      gl.uniform2f(U.uShapeOrigin, (W - pw) / 2, H - pad - ph);
+      gl.uniform2f(U.uShapeOrigin, 0, H - ph);
       gl.uniform2f(U.uShapeSize, pw, ph);
       gl.uniform1f(U.uShapeLo, 0.10);
       gl.uniform1f(U.uShapeHi, 1.0);
@@ -130,9 +128,10 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
       var pimg = new Image();
       pimg.onload = function () {
         var c2 = document.createElement('canvas');
-        c2.width = 512; c2.height = Math.round(512 * pimg.height / pimg.width);
+        c2.width = 640; c2.height = 512;
         var ctx = c2.getContext('2d');
-        ctx.drawImage(pimg, 0, 0, c2.width, c2.height);
+        // 5:4 crop from the top of the source - full width, head and shoulders.
+        ctx.drawImage(pimg, 0, 0, pimg.width, pimg.width * 0.8, 0, 0, 640, 512);
         var id = ctx.getImageData(0, 0, c2.width, c2.height), px = id.data;
         // Key the studio backdrop by flood-filling from the borders: colour
         // tolerance alone eats the beard greys, connectivity does not.
@@ -161,7 +160,6 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
           px[i] = l; px[i + 1] = l; px[i + 2] = l; px[i + 3] = keyed[i >> 2] ? 0 : 255;
         }
         ctx.putImageData(id, 0, 0);
-        photoAspect = c2.width / c2.height;
         photoTex = gl.createTexture();
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, photoTex);
