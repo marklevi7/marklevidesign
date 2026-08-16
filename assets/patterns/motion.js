@@ -263,8 +263,14 @@
     footerIn();
     var cards = [].slice.call(document.querySelectorAll(CARD_SEL))
       .filter(function (el) { return !excluded(el) && !el.classList.contains('mld-card-fx'); });
+    /* A card comes in as one piece. Its own title is an h2 like any other, so
+       the text sweep picked it up and gave it a second reveal with a delay of
+       its own - on the work page that read as 26 titles arriving separately
+       from the cards holding them. Anything inside a card is the card's. */
     var texts = [].slice.call(document.querySelectorAll(REVEAL_SEL))
-      .filter(function (el) { return !excluded(el) && !el.classList.contains('mld-rv'); });
+      .filter(function (el) {
+        return !excluded(el) && !el.classList.contains('mld-rv') && !el.closest(CARD_SEL);
+      });
 
     cards.forEach(function (c) {
       c.classList.add('mld-card-fx');
