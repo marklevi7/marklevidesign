@@ -13,7 +13,17 @@
    Mounted by script after load, into elements React already owns, only ever
    setting a class or a custom property - so hydration is untouched. */
 (function () {
-  var EASE = 'cubic-bezier(.16,1,.3,1)';
+  /* A soft ease-out, not an expo one. The old curve reached 95% of the way in
+     the first fifth of its run and then crawled, which read as a snap followed
+     by a wait - "sharp and hard" in the owner's words. This one spends its
+     speed evenly and settles instead of arriving. */
+  var EASE = 'cubic-bezier(.25,.6,.35,1)';
+
+  /* One entrance length, and one stagger step, both a quarter slower than the
+     first pass. Everything below reads these rather than repeating numbers. */
+  var IN_MS = 750;
+  var STEP_MS = 100;
+  var IN_S = (IN_MS / 1000) + 's';
 
   /* Cards get the full treatment: reveal, lift, spotlight. */
   var CARD_SEL = [
@@ -88,7 +98,7 @@
        the stock stylesheet, and a single class ties with it - the CTA snapped
        to full opacity instead of fading. */
     '.mld-rv.mld-rv{opacity:0;transform:translateY(24px);' +
-    'transition:opacity .6s ' + EASE + ',transform .6s ' + EASE + '}' +
+    'transition:opacity ' + IN_S + ' ' + EASE + ',transform ' + IN_S + ' ' + EASE + '}' +
     '.mld-rv.mld-rv.mld-in{opacity:1;transform:none}' +
     /* The lift rides on top of the reveal's transform, so it only arms once the
        reveal has finished and translateY is back to zero. */
@@ -149,13 +159,13 @@
         var el = en.target, parent = el.parentElement;
         var n = groups.get(parent) || 0;
         groups.set(parent, n + 1);
-        el.style.transitionDelay = (n * 0.08) + 's';
+        el.style.transitionDelay = (n * STEP_MS / 1000) + 's';
         el.classList.add('mld-in');
         io.unobserve(el);                  // once, never on the way back up
         setTimeout(function () {
           el.style.transitionDelay = '';
           el.classList.add('mld-armed');   // hover effects only after landing
-        }, 600 + n * 80);
+        }, IN_MS + n * STEP_MS);
       });
     }, { rootMargin: '0px 0px -12% 0px', threshold: 0 });
     els.forEach(function (el) { io.observe(el); });
@@ -168,10 +178,10 @@
       if (window.innerHeight + window.scrollY < document.documentElement.scrollHeight - 4) return;
       els.forEach(function (el, i) {
         if (el.classList.contains('mld-in')) return;
-        el.style.transitionDelay = ((i % 6) * 0.08) + 's';
+        el.style.transitionDelay = ((i % 6) * STEP_MS / 1000) + 's';
         el.classList.add('mld-in');
         io.unobserve(el);
-        setTimeout(function () { el.style.transitionDelay = ''; el.classList.add('mld-armed'); }, 900);
+        setTimeout(function () { el.style.transitionDelay = ''; el.classList.add('mld-armed'); }, IN_MS + 6 * STEP_MS);
       });
       window.removeEventListener('scroll', flush);
     };
@@ -197,7 +207,7 @@
     if ((!els.length && !proof.length) || reduced) { unveil(); return; }
     els.forEach(function (el, i) {
       el.classList.add('mld-rv');
-      el.style.transitionDelay = (0.08 * i) + 's';
+      el.style.transitionDelay = (i * STEP_MS / 1000) + 's';
     });
     /* Marked hidden in the same breath as the rest, so the guard can come off
        without it flashing - but handed to the scroll observer, not the cascade. */
@@ -209,7 +219,7 @@
       requestAnimationFrame(function () {
         els.forEach(function (el, i) {
           el.classList.add('mld-in');
-          setTimeout(function () { el.style.transitionDelay = ''; }, 600 + i * 80);
+          setTimeout(function () { el.style.transitionDelay = ''; }, IN_MS + i * STEP_MS);
         });
         /* Handled only now, a frame after the hidden state was painted. Any
            earlier and the class lands with no starting style committed, so on a
