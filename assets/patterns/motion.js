@@ -48,9 +48,14 @@
     /* The button's wrapper, not the link: the link carries its own
        transition from the stock stylesheet at a weight not worth fighting,
        and the row of buttons is the natural unit to bring in anyway. */
-    'section:has(#hero-calendly) div:has(> a#hero-calendly)',
-    '.mld-proof > div'
+    'section:has(#hero-calendly) div:has(> a#hero-calendly)'
   ].join(',');
+
+  /* The proof card is held back from that cascade: it sits below the fold on
+     most screens, so firing it on load meant it had already finished by the
+     time you scrolled to it. It is hidden by the same pre-paint guard, but it
+     comes in on the scroll trigger like everything else down the page. */
+  var PROOF_SEL = '.mld-proof > div';
 
   /* The footer's field is painted by a host in the body, not by the footer
      itself, so its content can move freely - the background never does. The
@@ -186,12 +191,17 @@
   function heroIn() {
     var els = [].slice.call(document.querySelectorAll(HERO_SEL))
       .filter(function (el) { return !el.classList.contains('mld-rv'); });
+    var proof = [].slice.call(document.querySelectorAll(PROOF_SEL))
+      .filter(function (el) { return !el.classList.contains('mld-rv'); });
     var unveil = function () { document.documentElement.classList.remove('mld-prehero'); };
-    if (!els.length || reduced) { unveil(); return; }
+    if ((!els.length && !proof.length) || reduced) { unveil(); return; }
     els.forEach(function (el, i) {
       el.classList.add('mld-rv');
       el.style.transitionDelay = (0.08 * i) + 's';
     });
+    /* Marked hidden in the same breath as the rest, so the guard can come off
+       without it flashing - but handed to the scroll observer, not the cascade. */
+    proof.forEach(function (el) { el.classList.add('mld-rv'); });
     /* Order matters: .mld-rv has to be painted before the pre-paint guard
        comes off, or the hero flashes at full opacity for a frame. */
     requestAnimationFrame(function () {
@@ -201,6 +211,19 @@
           el.classList.add('mld-in');
           setTimeout(function () { el.style.transitionDelay = ''; }, 600 + i * 80);
         });
+        /* Handled only now, a frame after the hidden state was painted. Any
+           earlier and the class lands with no starting style committed, so on a
+           screen where the card is already visible it snapped instead of
+           fading. If it is on screen it comes in here; if not, the scroll
+           observer takes it, which is the whole point of holding it back. */
+        var late = [];
+        proof.forEach(function (el) {
+          var r = el.getBoundingClientRect();
+          if (r.top < window.innerHeight * 0.9 && r.bottom > 0) {
+            el.classList.add('mld-in');
+          } else late.push(el);
+        });
+        if (late.length) reveal(late);
       });
     });
   }
