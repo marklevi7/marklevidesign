@@ -104,10 +104,19 @@
        reveal has finished and translateY is back to zero. */
     '.mld-card-fx{transition:transform .3s ' + EASE + ',box-shadow .3s ' + EASE + '}' +
     '.mld-card-fx.mld-armed:hover{transform:translateY(-4px)}' +
-    /* Spotlight: a soft pool of the grey token that follows the pointer. Painted
-       on a pseudo-element under the content, clipped to the card's own radius. */
-    '.mld-card-fx{position:relative}' +
-    '.mld-card-fx::after{content:"";position:absolute;inset:0;z-index:0;' +
+    /* Spotlight: a soft pool of light that follows the pointer, painted on a
+       pseudo-element under the content and clipped to the card's own radius.
+
+       The card is made its own stacking context so the pool can sit at z-index
+       -1: inside a stacking context that layer lands above the card's own
+       background and below everything in it, which is exactly where a pool of
+       light belongs. The earlier version instead raised every direct child to
+       position:relative, and that quietly re-parented the ones that were
+       absolute - the testimonial portraits hang 54px above their card, and they
+       dropped into the flow and landed on top of the quote. Nothing here
+       touches a child any more. */
+    '.mld-card-fx{position:relative;isolation:isolate}' +
+    '.mld-card-fx::after{content:"";position:absolute;inset:0;z-index:-1;' +
     'pointer-events:none;border-radius:inherit;opacity:0;' +
     'transition:opacity .3s ' + EASE + ';' +
     /* A light source, not a tint: plain white at low alpha, so it brightens
@@ -116,7 +125,6 @@
     'background:radial-gradient(300px circle at var(--mx,50%) var(--my,50%),' +
     'rgb(255 255 255 / .16),transparent 70%)}' +
     '.mld-card-fx.mld-armed:hover::after{opacity:1}' +
-    '.mld-card-fx > *{position:relative;z-index:1}' +
     '@media(prefers-reduced-motion:reduce){' +
     '.mld-rv{opacity:1;transform:none;transition:none}' +
     '.mld-card-fx,.mld-card-fx::after{transition:none}' +
