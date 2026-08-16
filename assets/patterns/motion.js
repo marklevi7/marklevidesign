@@ -18,6 +18,7 @@
   /* Cards get the full treatment: reveal, lift, spotlight. */
   var CARD_SEL = [
     '#works-list article',
+    '.mld-stats .mld-stat',
     'article:has(> blockquote)',
     'li:has(> article) > article'
   ].join(',');
@@ -27,7 +28,14 @@
     'main section > h1',
     'main section > h2',
     'main section > p',
-    'main h2:not(.mld-kicker)'
+    'main h2:not(.mld-kicker)',
+    /* The testimonial carousel comes in as one piece: its viewport, which the
+       slider never transforms, plus the arrows and the link beside it. The
+       slides themselves stay excluded - they sit off-screen horizontally and
+       would fade in again on every swipe. */
+    'div:has(> ul.swiper-wrapper)',
+    'section:has(.swiper-wrapper) button',
+    'section:has(.swiper-wrapper) a[href*="testimonial"]'
   ].join(',');
 
   /* The hero is the one canvas area that does take the reveal: only its
@@ -44,10 +52,25 @@
     '.mld-proof > div'
   ].join(',');
 
+  /* The footer's field is painted by a host in the body, not by the footer
+     itself, so its content can move freely - the background never does. The
+     legal row is skipped on purpose: it carries a translateY that positions it
+     over the field, and a reveal transform would fight it. Its chips come in
+     individually instead. */
+  var FOOTER_SEL = [
+    'footer h2', 'footer p',
+    'footer a[href^="mailto"]', 'footer a[href*="calendly"]', 'footer a[href*="wa.me"]',
+    'footer a[aria-label*="account"]',
+    'footer a[href*="privacy"]', 'footer a[href*="terms"]', 'footer a[href*="accessibility"]'
+  ].join(',');
+
   /* Anything that hosts, or is tracked by, a live canvas stays put this round.
      Also the logo strip, which already carries its own scroll animation. */
   var EXCLUDE = [
-    'footer', '.mld-stats', '.mld-stat', '.clients-list',
+    /* .mld-stat is not listed: the stat cards no longer carry a pixel field,
+       so they take the reveal like any other card. Any card that still holds a
+       live canvas is caught by the querySelector check below regardless. */
+    'footer', '.clients-list',
     'section:has(#hero-calendly)', 'div.c1wm8bso.cvgvfj9',
     /* Carousel slides sit outside the viewport horizontally, so they never
        intersect and would stay invisible until swiped - and then fade in on
@@ -89,7 +112,11 @@
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function excluded(el) {
-    return !!(el.closest(EXCLUDE) || el.querySelector('canvas'));
+    if (el.closest(EXCLUDE) || el.querySelector('canvas')) return true;
+    /* Zero-size means hidden - the retired Dribbble chip, for one. It could
+       never intersect, so it would stay at opacity 0 for good. */
+    var r = el.getBoundingClientRect();
+    return !r.width || !r.height;
   }
 
   function style() {
@@ -127,6 +154,23 @@
       });
     }, { rootMargin: '0px 0px -12% 0px', threshold: 0 });
     els.forEach(function (el) { io.observe(el); });
+
+    /* The bottom inset means anything sitting below the trigger line when the
+       page runs out of scroll never fires - the legal chips ride 120px down
+       into the footer field and land exactly there. Flush the remainder once
+       the scroll bottoms out. */
+    var flush = function () {
+      if (window.innerHeight + window.scrollY < document.documentElement.scrollHeight - 4) return;
+      els.forEach(function (el, i) {
+        if (el.classList.contains('mld-in')) return;
+        el.style.transitionDelay = ((i % 6) * 0.08) + 's';
+        el.classList.add('mld-in');
+        io.unobserve(el);
+        setTimeout(function () { el.style.transitionDelay = ''; el.classList.add('mld-armed'); }, 900);
+      });
+      window.removeEventListener('scroll', flush);
+    };
+    window.addEventListener('scroll', flush, { passive: true });
   }
 
   function spotlight(card) {
@@ -161,9 +205,21 @@
     });
   }
 
+  function footerIn() {
+    var els = [].slice.call(document.querySelectorAll(FOOTER_SEL))
+      .filter(function (el) {
+        var r = el.getBoundingClientRect();
+        return !el.classList.contains('mld-rv') && r.width && r.height;
+      });
+    if (!els.length || reduced) return;
+    els.forEach(function (el) { el.classList.add('mld-rv'); });
+    reveal(els);
+  }
+
   function build() {
     style();
     heroIn();
+    footerIn();
     var cards = [].slice.call(document.querySelectorAll(CARD_SEL))
       .filter(function (el) { return !excluded(el) && !el.classList.contains('mld-card-fx'); });
     var texts = [].slice.call(document.querySelectorAll(REVEAL_SEL))
