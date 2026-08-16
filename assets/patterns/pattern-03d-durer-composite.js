@@ -564,7 +564,12 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
   function boot() {
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
-        if (!window.MLD_FOOTER_ONLY) { mount(); mountCard(); }
+        if (!window.MLD_FOOTER_ONLY) {
+          mount();
+          /* MLD_NO_CARD: the stat cards carry no field any more, so skip the
+             mount entirely rather than hide it - no second WebGL context. */
+          if (!window.MLD_NO_CARD) mountCard();
+        }
         mountFooter();
       });
     });
