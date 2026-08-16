@@ -30,6 +30,20 @@
     'main h2:not(.mld-kicker)'
   ].join(',');
 
+  /* The hero is the one canvas area that does take the reveal: only its
+     children move, never the section, so the field's host - which is sized
+     from the section's box - has nothing to re-measure. These animate on load
+     rather than on scroll, since they are already on screen. */
+  var HERO_SEL = [
+    'section:has(#hero-calendly) h1',
+    'section:has(#hero-calendly) h2.mld-kicker',
+    /* The button's wrapper, not the link: the link carries its own
+       transition from the stock stylesheet at a weight not worth fighting,
+       and the row of buttons is the natural unit to bring in anyway. */
+    'section:has(#hero-calendly) div:has(> a#hero-calendly)',
+    '.mld-proof > div'
+  ].join(',');
+
   /* Anything that hosts, or is tracked by, a live canvas stays put this round.
      Also the logo strip, which already carries its own scroll animation. */
   var EXCLUDE = [
@@ -42,9 +56,12 @@
   ].join(',');
 
   var CSS =
-    '.mld-rv{opacity:0;transform:translateY(24px);' +
+    /* Doubled class for weight: some elements carry their own transition from
+       the stock stylesheet, and a single class ties with it - the CTA snapped
+       to full opacity instead of fading. */
+    '.mld-rv.mld-rv{opacity:0;transform:translateY(24px);' +
     'transition:opacity .6s ' + EASE + ',transform .6s ' + EASE + '}' +
-    '.mld-rv.mld-in{opacity:1;transform:none}' +
+    '.mld-rv.mld-rv.mld-in{opacity:1;transform:none}' +
     /* The lift rides on top of the reveal's transform, so it only arms once the
        reveal has finished and translateY is back to zero. */
     '.mld-card-fx{transition:transform .3s ' + EASE + ',box-shadow .3s ' + EASE + '}' +
@@ -120,8 +137,33 @@
     }, { passive: true });
   }
 
+  /* On-load cascade: the hero pieces come up in reading order rather than all
+     at once, which is what makes the first screen feel staged. */
+  function heroIn() {
+    var els = [].slice.call(document.querySelectorAll(HERO_SEL))
+      .filter(function (el) { return !el.classList.contains('mld-rv'); });
+    var unveil = function () { document.documentElement.classList.remove('mld-prehero'); };
+    if (!els.length || reduced) { unveil(); return; }
+    els.forEach(function (el, i) {
+      el.classList.add('mld-rv');
+      el.style.transitionDelay = (0.08 * i) + 's';
+    });
+    /* Order matters: .mld-rv has to be painted before the pre-paint guard
+       comes off, or the hero flashes at full opacity for a frame. */
+    requestAnimationFrame(function () {
+      unveil();
+      requestAnimationFrame(function () {
+        els.forEach(function (el, i) {
+          el.classList.add('mld-in');
+          setTimeout(function () { el.style.transitionDelay = ''; }, 600 + i * 80);
+        });
+      });
+    });
+  }
+
   function build() {
     style();
+    heroIn();
     var cards = [].slice.call(document.querySelectorAll(CARD_SEL))
       .filter(function (el) { return !excluded(el) && !el.classList.contains('mld-card-fx'); });
     var texts = [].slice.call(document.querySelectorAll(REVEAL_SEL))
