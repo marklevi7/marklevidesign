@@ -428,6 +428,11 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     var LENS = window.MLD_LENS || (window.MLD_LENS = {
       zoom: 1.35,
       refract: 0,
+      /* Soft parallax on the five-star card: it drifts a little against the
+         scroll so it reads as floating above the field rather than pinned to
+         it. Written to the `translate` property, not `transform`, so it layers
+         on top of the reveal's transform instead of fighting it. */
+      parallax: { sel: '.mld-proof > div', amount: 0.05, max: 14 },
       panels: [
         { sel: '.mld-proof > div', radius: 20 },
         /* The pill is a pseudo-element, so its box comes from #header's rect
@@ -438,6 +443,8 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     var MAX_LENS = 4;
     var lensOn = !container.classList.contains('mld-card-pattern') &&
                  !container.classList.contains('mld-footer-pattern');
+    var reduceMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var lensRects = [];
     var lensBuf = new Float32Array(MAX_LENS * 4);
     var lensRad = new Float32Array(MAX_LENS);
@@ -497,8 +504,30 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
          fixed to the viewport while this canvas sits in document coordinates,
          so for that one the scroll listener is not an optimisation, it is what
          keeps the panel over the right pixels. */
-      window.addEventListener('resize', measureLens);
-      window.addEventListener('scroll', measureLens, { passive: true });
+      /* Parallax first, then the rect: the drift moves the card, so measuring
+         before applying it would leave the glass a frame behind the panel. */
+      var parEl = null, parQueued = false, parLast = null;
+      function parallaxStep() {
+        parQueued = false;
+        var cfg = LENS.parallax;
+        if (cfg && !reduceMotion) {
+          if (!parEl) parEl = document.querySelector(cfg.sel);
+          if (parEl) {
+            var r = parEl.getBoundingClientRect();
+            var mid = window.innerHeight / 2;
+            var off = (mid - (r.top + r.height / 2)) * (cfg.amount || 0);
+            var cap = cfg.max || 0;
+            off = Math.max(-cap, Math.min(cap, off));
+            off = Math.round(off * 100) / 100;
+            if (off !== parLast) { parEl.style.translate = '0 ' + off + 'px'; parLast = off; }
+          }
+        }
+        measureLens();
+      }
+      function onScroll() { if (!parQueued) { parQueued = true; requestAnimationFrame(parallaxStep); } }
+      window.addEventListener('resize', function () { parEl = null; parLast = null; parallaxStep(); });
+      window.addEventListener('scroll', onScroll, { passive: true });
+      parallaxStep();
       if ('ResizeObserver' in window) {
         var lro = new ResizeObserver(measureLens);
         lro.observe(document.body);
