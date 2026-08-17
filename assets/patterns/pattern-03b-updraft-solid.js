@@ -36,7 +36,7 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
   // too faint against the dark card, 10% down reads fine against white.
   var FOUNDER = { alpha: 0.33, density: 0.55, gradientY: 0,
     inkFn: function () { return [1, 1, 1]; },
-    photo: '/assets/avarat-D_grey_CrauOc7R-YwGXano-cu-j.jpg' };
+    photo: '/assets/avatar-founder_mld2026.webp' };
 
   function founderInk() {
     // The card is painted with --color-black in both themes (the token flips
