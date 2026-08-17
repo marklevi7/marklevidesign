@@ -23,7 +23,7 @@
    The canvas is transparent — only the ink colour is drawn — so the page
    background shows through and the pattern re-tints with the theme. */
 (function () {
-  var FRAG_BODY = '\nprecision highp float;\n\nuniform vec3  uColor;\nuniform vec2  uResolution;\nuniform float uTime;\nuniform float uPixelSize;\nuniform int   uShapeType;\nuniform float uDensity;\nuniform float uFbmSpeed;\nuniform float uRippleSpeed;\nuniform float uRippleThickness;\nuniform float uFlowY;\nuniform float uGradientY;\nuniform sampler2D uShape;\nuniform vec2 uShapeOrigin;\nuniform vec2 uShapeSize;\nuniform float uShapeLo;\nuniform float uShapeHi;\n\n// The glass lens. uLens is the panel in fragment coordinates -\n// xy centre, zw half-size - and uLensR its corner radius. Zoom of 0 or 1\n// leaves every fragment exactly where it was.\nuniform vec4  uLens;\nuniform float uLensR;\nuniform float uLensZoom;\nuniform float uLensRefract;\n\nconst int SHAPE_SQUARE   = 0;\nconst int SHAPE_CIRCLE   = 1;\nconst int SHAPE_TRIANGLE = 2;\nconst int SHAPE_DIAMOND  = 3;\n\nconst int MAX_CLICKS = 10;\nuniform vec2  uClickPos[MAX_CLICKS];\nuniform float uClickTimes[MAX_CLICKS];\n\nout vec4 fragColor;\n\nfloat Bayer2(vec2 a) { a = floor(a); return fract(a.x / 2.0 + a.y * a.y * 0.75); }\n#define Bayer4(a) (Bayer2(0.5*(a))*0.25 + Bayer2(a))\n#define Bayer8(a) (Bayer4(0.5*(a))*0.25 + Bayer2(a))\n\n#define FBM_OCTAVES    5\n#define FBM_LACUNARITY 1.25\n#define FBM_GAIN       1.0\n#define FBM_SCALE      4.0\n\nfloat hash11(float n) { return fract(sin(n) * 43758.5453); }\n\nfloat vnoise(vec3 p) {\n  vec3 ip = floor(p);\n  vec3 fp = fract(p);\n  float n000 = hash11(dot(ip + vec3(0.0,0.0,0.0), vec3(1.0,57.0,113.0)));\n  float n100 = hash11(dot(ip + vec3(1.0,0.0,0.0), vec3(1.0,57.0,113.0)));\n  float n010 = hash11(dot(ip + vec3(0.0,1.0,0.0), vec3(1.0,57.0,113.0)));\n  float n110 = hash11(dot(ip + vec3(1.0,1.0,0.0), vec3(1.0,57.0,113.0)));\n  float n001 = hash11(dot(ip + vec3(0.0,0.0,1.0), vec3(1.0,57.0,113.0)));\n  float n101 = hash11(dot(ip + vec3(1.0,0.0,1.0), vec3(1.0,57.0,113.0)));\n  float n011 = hash11(dot(ip + vec3(0.0,1.0,1.0), vec3(1.0,57.0,113.0)));\n  float n111 = hash11(dot(ip + vec3(1.0,1.0,1.0), vec3(1.0,57.0,113.0)));\n  vec3 w = fp*fp*fp*(fp*(fp*6.0-15.0)+10.0);\n  float x00 = mix(n000, n100, w.x);\n  float x10 = mix(n010, n110, w.x);\n  float x01 = mix(n001, n101, w.x);\n  float x11 = mix(n011, n111, w.x);\n  float y0  = mix(x00, x10, w.y);\n  float y1  = mix(x01, x11, w.y);\n  return mix(y0, y1, w.z) * 2.0 - 1.0;\n}\n\nfloat fbm2(vec2 uv, float t) {\n  vec3 p = vec3(uv * FBM_SCALE, t);\n  float amp  = 1.0;\n  float freq = 1.0;\n  float sum  = 1.0;\n  for (int i = 0; i < FBM_OCTAVES; ++i) {\n    sum  += amp * vnoise(p * freq);\n    freq *= FBM_LACUNARITY;\n    amp  *= FBM_GAIN;\n  }\n  return sum * 0.5 + 0.5;\n}\n\nfloat maskCircle(vec2 p, float cov) {\n  float r = sqrt(cov) * 0.25;\n  float d = length(p - 0.5) - r;\n  float aa = 0.5 * fwidth(d);\n  return cov * (1.0 - smoothstep(-aa, aa, d * 2.0));\n}\nfloat maskTriangle(vec2 p, vec2 id, float cov) {\n  bool flip = mod(id.x + id.y, 2.0) > 0.5;\n  if (flip) p.x = 1.0 - p.x;\n  float r  = sqrt(cov);\n  float d  = p.y - r * (1.0 - p.x);\n  float aa = fwidth(d);\n  return cov * clamp(0.5 - d / aa, 0.0, 1.0);\n}\nfloat maskDiamond(vec2 p, float cov) {\n  float r = sqrt(cov) * 0.564;\n  return step(abs(p.x - 0.49) + abs(p.y - 0.49), r);\n}\n\nfloat lensSD(vec2 p) {\n  vec2 q = abs(p - uLens.xy) - uLens.zw + uLensR;\n  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - uLensR;\n}\n\nvoid main() {\n  // Magnification, before anything else reads a coordinate. The field is a\n  // pure function of position and time, so evaluating it at coordinates\n  // pulled toward the panel centre IS the zoom - the dots, their grid and\n  // the Bayer threshold all scale together, the way they would through\n  // glass. No second pass, no render target, no readback: one branch.\n  vec2 screen = gl_FragCoord.xy;\n  if (uLensZoom > 1.0) {\n    float sd = lensSD(screen);\n    if (sd < 0.0) {\n      vec2 d = screen - uLens.xy;\n      screen = uLens.xy + d / uLensZoom;\n      // Thickness: the last few pixels before the rim bend harder, the way\n      // the curved edge of real glass throws what is behind it outward.\n      if (uLensRefract > 0.0) {\n        float rim = 1.0 - smoothstep(-uLensR, 0.0, sd);\n        screen -= normalize(d + 1e-4) * (1.0 - rim) * uLensRefract;\n      }\n    }\n  }\n  float pixel = uPixelSize;\n  vec2 fragCoord = screen - uResolution * 0.5;\n  float aspect = uResolution.x / uResolution.y;\n\n  vec2 pixelId = floor(fragCoord / pixel);\n  vec2 pixelUV = fract(fragCoord / pixel);\n\n  float cellPx = 8.0 * pixel;\n  vec2 cellId  = floor(fragCoord / cellPx);\n  vec2 cellCoord = cellId * cellPx;\n  vec2 uv = cellCoord / uResolution * vec2(aspect, 1.0);\n\n  vec2 flowUv = uv - vec2(0.0, uTime * uFlowY);\n  float feed = fbm2(flowUv, uTime * uFbmSpeed);\n\n  float ny = screen.y / max(uResolution.y, 1.0);\n  float dens = clamp(uDensity + uGradientY * (1.0 - ny) * 0.55, 0.0, 1.0);\n\n  feed = feed * 0.5 - mix(0.65, 0.10, dens);\n\n  // A plain over: the solid sits on the field and hides what is behind it,\n  // then the dither below runs over the pair. Nothing else passes between\n  // them - no bleed-through, no bias, just occlusion.\n  // Sampled at the centre of each dot cell, not per fragment. Per fragment the\n  // silhouette follows the true polygon edge at full resolution while every\n  // other boundary on screen is quantised to the dot grid, and that mismatch\n  // is what makes the edge read as a mask laid over the dither instead of\n  // part of it. On the dot grid it steps like everything else.\n  if (uShapeSize.x > 0.5) {\n    vec2 dotCentre = (pixelId + 0.5) * pixel + uResolution * 0.5;\n    vec2 sUV = (dotCentre - uShapeOrigin) / uShapeSize;\n    if (sUV.x > 0.0 && sUV.x < 1.0 && sUV.y > 0.0 && sUV.y < 1.0) {\n      vec4 sh = texture(uShape, sUV);\n      feed = mix(feed, mix(uShapeLo, uShapeHi, sh.r), sh.a);\n    }\n  }\n\n  const float dampT = 1.0;\n  const float dampR = 10.0;\n\n  for (int i = 0; i < MAX_CLICKS; ++i) {\n    vec2 pos = uClickPos[i];\n    if (pos.x < 0.0) continue;\n    vec2 cuv = (((pos - uResolution * 0.5 - cellPx * 0.5) / uResolution)) * vec2(aspect, 1.0);\n    float t = max(uTime - uClickTimes[i], 0.0);\n    float r = distance(uv, cuv);\n    float waveR = uRippleSpeed * t;\n    float ring  = exp(-pow((r - waveR) / uRippleThickness, 2.0));\n    float atten = exp(-dampT * t) * exp(-dampR * r);\n    feed = max(feed, ring * atten);\n  }\n\n  float bayer = Bayer8(fragCoord / uPixelSize) - 0.5;\n  float bw    = step(0.5, feed + bayer);\n\n  float coverage = bw;\n  float M;\n  if      (uShapeType == SHAPE_CIRCLE)   M = maskCircle (pixelUV, coverage);\n  else if (uShapeType == SHAPE_TRIANGLE) M = maskTriangle(pixelUV, pixelId, coverage);\n  else if (uShapeType == SHAPE_DIAMOND)  M = maskDiamond(pixelUV, coverage);\n  else                                   M = coverage;\n\n  fragColor = vec4(uColor, M);\n}';
+  var FRAG_BODY = '\nprecision highp float;\n\nuniform vec3  uColor;\nuniform vec2  uResolution;\nuniform float uTime;\nuniform float uPixelSize;\nuniform int   uShapeType;\nuniform float uDensity;\nuniform float uFbmSpeed;\nuniform float uRippleSpeed;\nuniform float uRippleThickness;\nuniform float uFlowY;\nuniform float uGradientY;\nuniform sampler2D uShape;\nuniform vec2 uShapeOrigin;\nuniform vec2 uShapeSize;\nuniform float uShapeLo;\nuniform float uShapeHi;\n\n// The glass lens. uLens is the panel in fragment coordinates -\n// xy centre, zw half-size - and uLensR its corner radius. Zoom of 0 or 1\n// leaves every fragment exactly where it was.\nconst int MAX_LENS = 4;\nuniform vec4  uLens[MAX_LENS];\nuniform float uLensR[MAX_LENS];\nuniform int   uLensCount;\nuniform float uLensZoom;\nuniform float uLensRefract;\n\nconst int SHAPE_SQUARE   = 0;\nconst int SHAPE_CIRCLE   = 1;\nconst int SHAPE_TRIANGLE = 2;\nconst int SHAPE_DIAMOND  = 3;\n\nconst int MAX_CLICKS = 10;\nuniform vec2  uClickPos[MAX_CLICKS];\nuniform float uClickTimes[MAX_CLICKS];\n\nout vec4 fragColor;\n\nfloat Bayer2(vec2 a) { a = floor(a); return fract(a.x / 2.0 + a.y * a.y * 0.75); }\n#define Bayer4(a) (Bayer2(0.5*(a))*0.25 + Bayer2(a))\n#define Bayer8(a) (Bayer4(0.5*(a))*0.25 + Bayer2(a))\n\n#define FBM_OCTAVES    5\n#define FBM_LACUNARITY 1.25\n#define FBM_GAIN       1.0\n#define FBM_SCALE      4.0\n\nfloat hash11(float n) { return fract(sin(n) * 43758.5453); }\n\nfloat vnoise(vec3 p) {\n  vec3 ip = floor(p);\n  vec3 fp = fract(p);\n  float n000 = hash11(dot(ip + vec3(0.0,0.0,0.0), vec3(1.0,57.0,113.0)));\n  float n100 = hash11(dot(ip + vec3(1.0,0.0,0.0), vec3(1.0,57.0,113.0)));\n  float n010 = hash11(dot(ip + vec3(0.0,1.0,0.0), vec3(1.0,57.0,113.0)));\n  float n110 = hash11(dot(ip + vec3(1.0,1.0,0.0), vec3(1.0,57.0,113.0)));\n  float n001 = hash11(dot(ip + vec3(0.0,0.0,1.0), vec3(1.0,57.0,113.0)));\n  float n101 = hash11(dot(ip + vec3(1.0,0.0,1.0), vec3(1.0,57.0,113.0)));\n  float n011 = hash11(dot(ip + vec3(0.0,1.0,1.0), vec3(1.0,57.0,113.0)));\n  float n111 = hash11(dot(ip + vec3(1.0,1.0,1.0), vec3(1.0,57.0,113.0)));\n  vec3 w = fp*fp*fp*(fp*(fp*6.0-15.0)+10.0);\n  float x00 = mix(n000, n100, w.x);\n  float x10 = mix(n010, n110, w.x);\n  float x01 = mix(n001, n101, w.x);\n  float x11 = mix(n011, n111, w.x);\n  float y0  = mix(x00, x10, w.y);\n  float y1  = mix(x01, x11, w.y);\n  return mix(y0, y1, w.z) * 2.0 - 1.0;\n}\n\nfloat fbm2(vec2 uv, float t) {\n  vec3 p = vec3(uv * FBM_SCALE, t);\n  float amp  = 1.0;\n  float freq = 1.0;\n  float sum  = 1.0;\n  for (int i = 0; i < FBM_OCTAVES; ++i) {\n    sum  += amp * vnoise(p * freq);\n    freq *= FBM_LACUNARITY;\n    amp  *= FBM_GAIN;\n  }\n  return sum * 0.5 + 0.5;\n}\n\nfloat maskCircle(vec2 p, float cov) {\n  float r = sqrt(cov) * 0.25;\n  float d = length(p - 0.5) - r;\n  float aa = 0.5 * fwidth(d);\n  return cov * (1.0 - smoothstep(-aa, aa, d * 2.0));\n}\nfloat maskTriangle(vec2 p, vec2 id, float cov) {\n  bool flip = mod(id.x + id.y, 2.0) > 0.5;\n  if (flip) p.x = 1.0 - p.x;\n  float r  = sqrt(cov);\n  float d  = p.y - r * (1.0 - p.x);\n  float aa = fwidth(d);\n  return cov * clamp(0.5 - d / aa, 0.0, 1.0);\n}\nfloat maskDiamond(vec2 p, float cov) {\n  float r = sqrt(cov) * 0.564;\n  return step(abs(p.x - 0.49) + abs(p.y - 0.49), r);\n}\n\nfloat lensSD(vec2 p, vec4 L, float r) {\n  vec2 q = abs(p - L.xy) - L.zw + r;\n  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;\n}\n\nvoid main() {\n  // Magnification, before anything else reads a coordinate. The field is a\n  // pure function of position and time, so evaluating it at coordinates\n  // pulled toward the panel centre IS the zoom - the dots, their grid and\n  // the Bayer threshold all scale together, the way they would through\n  // glass. No second pass, no render target, no readback: one branch.\n  vec2 screen = gl_FragCoord.xy;\n  for (int i = 0; i < MAX_LENS; ++i) {\n    if (i >= uLensCount || uLensZoom <= 1.0) break;\n    vec4 L = uLens[i];\n    float sd = lensSD(screen, L, uLensR[i]);\n    if (sd < 0.0) {\n      vec2 d = screen - L.xy;\n      screen = L.xy + d / uLensZoom;\n      // Thickness: the last few pixels before the rim bend harder, the way\n      // the curved edge of real glass throws what is behind it outward.\n      if (uLensRefract > 0.0) {\n        float rim = 1.0 - smoothstep(-uLensR[i], 0.0, sd);\n        screen -= normalize(d + 1e-4) * (1.0 - rim) * uLensRefract;\n      }\n      break;   // panels do not overlap; the first hit owns the fragment\n    }\n  }\n  float pixel = uPixelSize;\n  vec2 fragCoord = screen - uResolution * 0.5;\n  float aspect = uResolution.x / uResolution.y;\n\n  vec2 pixelId = floor(fragCoord / pixel);\n  vec2 pixelUV = fract(fragCoord / pixel);\n\n  float cellPx = 8.0 * pixel;\n  vec2 cellId  = floor(fragCoord / cellPx);\n  vec2 cellCoord = cellId * cellPx;\n  vec2 uv = cellCoord / uResolution * vec2(aspect, 1.0);\n\n  vec2 flowUv = uv - vec2(0.0, uTime * uFlowY);\n  float feed = fbm2(flowUv, uTime * uFbmSpeed);\n\n  float ny = screen.y / max(uResolution.y, 1.0);\n  float dens = clamp(uDensity + uGradientY * (1.0 - ny) * 0.55, 0.0, 1.0);\n\n  feed = feed * 0.5 - mix(0.65, 0.10, dens);\n\n  // A plain over: the solid sits on the field and hides what is behind it,\n  // then the dither below runs over the pair. Nothing else passes between\n  // them - no bleed-through, no bias, just occlusion.\n  // Sampled at the centre of each dot cell, not per fragment. Per fragment the\n  // silhouette follows the true polygon edge at full resolution while every\n  // other boundary on screen is quantised to the dot grid, and that mismatch\n  // is what makes the edge read as a mask laid over the dither instead of\n  // part of it. On the dot grid it steps like everything else.\n  if (uShapeSize.x > 0.5) {\n    vec2 dotCentre = (pixelId + 0.5) * pixel + uResolution * 0.5;\n    vec2 sUV = (dotCentre - uShapeOrigin) / uShapeSize;\n    if (sUV.x > 0.0 && sUV.x < 1.0 && sUV.y > 0.0 && sUV.y < 1.0) {\n      vec4 sh = texture(uShape, sUV);\n      feed = mix(feed, mix(uShapeLo, uShapeHi, sh.r), sh.a);\n    }\n  }\n\n  const float dampT = 1.0;\n  const float dampR = 10.0;\n\n  for (int i = 0; i < MAX_CLICKS; ++i) {\n    vec2 pos = uClickPos[i];\n    if (pos.x < 0.0) continue;\n    vec2 cuv = (((pos - uResolution * 0.5 - cellPx * 0.5) / uResolution)) * vec2(aspect, 1.0);\n    float t = max(uTime - uClickTimes[i], 0.0);\n    float r = distance(uv, cuv);\n    float waveR = uRippleSpeed * t;\n    float ring  = exp(-pow((r - waveR) / uRippleThickness, 2.0));\n    float atten = exp(-dampT * t) * exp(-dampR * r);\n    feed = max(feed, ring * atten);\n  }\n\n  float bayer = Bayer8(fragCoord / uPixelSize) - 0.5;\n  float bw    = step(0.5, feed + bayer);\n\n  float coverage = bw;\n  float M;\n  if      (uShapeType == SHAPE_CIRCLE)   M = maskCircle (pixelUV, coverage);\n  else if (uShapeType == SHAPE_TRIANGLE) M = maskTriangle(pixelUV, pixelId, coverage);\n  else if (uShapeType == SHAPE_DIAMOND)  M = maskDiamond(pixelUV, coverage);\n  else                                   M = coverage;\n\n  fragColor = vec4(uColor, M);\n}';
 
   var VERT = '#version 300 es\nin vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
   var FRAG = '#version 300 es\n' + FRAG_BODY;
@@ -316,7 +316,7 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     ['uResolution','uTime','uColor','uShapeType','uPixelSize','uDensity','uFbmSpeed',
      'uRippleSpeed','uRippleThickness','uFlowY','uGradientY','uClickPos','uClickTimes',
      'uShape','uShapeOrigin','uShapeSize','uShapeLo','uShapeHi',
-     'uLens','uLensR','uLensZoom','uLensRefract']
+     'uLens','uLensR','uLensCount','uLensZoom','uLensRefract']
       .forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
 
     var clickPos = new Float32Array(MAX * 2).fill(-1);
@@ -412,35 +412,80 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
       new IntersectionObserver(function (en) { visible = en[0].isIntersecting; }, { threshold: 0 }).observe(container);
     }
 
-    /* The glass lens over the five-star card.
+    /* The glass lens.
 
-       Only the hero host runs it: the card sits inside that host's box, so the
-       panel's rect can be expressed in this canvas's own pixels. The card keeps
-       its CSS fill, its border and its blur - all this adds is magnification of
-       the field showing through, which backdrop-filter has no way to express.
+       One effect, several panels: the five-star card and the header pill are
+       the same piece of glass, so they share a zoom, a refraction amount and
+       the shader branch that applies them. Only the hero host runs it - both
+       panels sit inside that host's box, so their rects can be expressed in
+       this canvas's own pixels.
+
+       The panels keep their CSS fill, border and blur. All this adds is
+       magnification of the field showing through, which backdrop-filter has no
+       way to express.
 
        Tunable live from the console via window.MLD_LENS. */
-    var LENS = window.MLD_LENS || (window.MLD_LENS = { zoom: 1.35, refract: 0, radius: 20, sel: '.mld-proof > div' });
+    var LENS = window.MLD_LENS || (window.MLD_LENS = {
+      zoom: 1.35,
+      refract: 0,
+      panels: [
+        { sel: '.mld-proof > div', radius: 20 },
+        /* The pill is a pseudo-element, so its box comes from #header's rect
+           plus the ::before insets rather than from an element of its own. */
+        { sel: '#header', pseudo: '::before', radius: 999 }
+      ]
+    });
+    var MAX_LENS = 4;
     var lensOn = !container.classList.contains('mld-card-pattern') &&
                  !container.classList.contains('mld-footer-pattern');
-    var lensRect = null;
+    var lensRects = [];
+    var lensBuf = new Float32Array(MAX_LENS * 4);
+    var lensRad = new Float32Array(MAX_LENS);
+
+    function panelBox(spec) {
+      var el = document.querySelector(spec.sel);
+      if (!el) return null;
+      var r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return null;
+      if (!spec.pseudo) return { left: r.left, top: r.top, width: r.width, height: r.height };
+      /* Insets are read fresh here rather than cached: they are four values on
+         one element, and they change with the breakpoint. */
+      var cs = getComputedStyle(el, spec.pseudo);
+      if (cs.content === 'none' || parseFloat(cs.opacity) === 0) return null;
+      var l = parseFloat(cs.left) || 0, rt = parseFloat(cs.right) || 0;
+      var tp = parseFloat(cs.top) || 0, bt = parseFloat(cs.bottom) || 0;
+      var w = r.width - l - rt, h = r.height - tp - bt;
+      if (w <= 0 || h <= 0) return null;
+      return { left: r.left + l, top: r.top + tp, width: w, height: h };
+    }
 
     function measureLens() {
       if (!lensOn) return;
-      var el = document.querySelector(LENS.sel);
-      if (!el) { lensRect = null; return; }
-      var c = el.getBoundingClientRect(), h = container.getBoundingClientRect();
-      if (!c.width || !c.height) { lensRect = null; return; }
-      /* gl_FragCoord counts from the bottom left, the DOM from the top left. */
-      var cx = (c.left - h.left + c.width / 2) * dpr;
-      var cyTop = (c.top - h.top + c.height / 2) * dpr;
-      lensRect = [cx, canvas.height - cyTop, c.width / 2 * dpr, c.height / 2 * dpr];
+      var h = container.getBoundingClientRect();
+      var out = [];
+      var list = (LENS.panels || []).slice(0, MAX_LENS);
+      for (var i = 0; i < list.length; i++) {
+        var box = panelBox(list[i]);
+        if (!box) continue;
+        /* gl_FragCoord counts from the bottom left, the DOM from the top left. */
+        var cx = (box.left - h.left + box.width / 2) * dpr;
+        var cyTop = (box.top - h.top + box.height / 2) * dpr;
+        out.push([cx, canvas.height - cyTop, box.width / 2 * dpr, box.height / 2 * dpr,
+                  Math.min(list[i].radius || 0, Math.min(box.width, box.height) / 2) * dpr]);
+      }
+      lensRects = out;
     }
 
     function pushLens() {
-      if (!lensOn || !lensRect) { gl.uniform1f(U.uLensZoom, 0); return; }
-      gl.uniform4f(U.uLens, lensRect[0], lensRect[1], lensRect[2], lensRect[3]);
-      gl.uniform1f(U.uLensR, (LENS.radius || 0) * dpr);
+      if (!lensOn || !lensRects.length) { gl.uniform1i(U.uLensCount, 0); return; }
+      for (var i = 0; i < lensRects.length; i++) {
+        lensBuf[i * 4] = lensRects[i][0]; lensBuf[i * 4 + 1] = lensRects[i][1];
+        lensBuf[i * 4 + 2] = lensRects[i][2]; lensBuf[i * 4 + 3] = lensRects[i][3];
+        lensRad[i] = lensRects[i][4];
+      }
+      gl.uniform4fv(U.uLens, lensBuf);
+      gl.uniform1fv(U.uLensR, lensRad);
+      gl.uniform1i(U.uLensCount, lensRects.length);
       gl.uniform1f(U.uLensZoom, LENS.zoom || 0);
       gl.uniform1f(U.uLensRefract, (LENS.refract || 0) * dpr);
     }
@@ -448,20 +493,25 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     if (lensOn) {
       measureLens();
       /* Layout changes only - never inside the frame loop, which would force a
-         layout every frame for a rect that moves once in a while. */
+         layout every frame for rects that move once in a while. The pill is
+         fixed to the viewport while this canvas sits in document coordinates,
+         so for that one the scroll listener is not an optimisation, it is what
+         keeps the panel over the right pixels. */
       window.addEventListener('resize', measureLens);
       window.addEventListener('scroll', measureLens, { passive: true });
       if ('ResizeObserver' in window) {
         var lro = new ResizeObserver(measureLens);
         lro.observe(document.body);
-        var lensEl = document.querySelector(LENS.sel);
-        if (lensEl) lro.observe(lensEl);
+        (LENS.panels || []).forEach(function (spec) {
+          var el = document.querySelector(spec.sel);
+          if (el) lro.observe(el);
+        });
       }
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureLens);
       [400, 1200, 2500, 5000].forEach(function (ms) { setTimeout(measureLens, ms); });
       window.MLD_LENS_REFRESH = measureLens;
-      /* Handy when tuning: shows the rect the shader is actually using. */
-      window.MLD_LENS_RECT = function () { return lensRect && lensRect.slice(); };
+      /* Handy when tuning: shows the rects the shader is actually using. */
+      window.MLD_LENS_RECT = function () { return lensRects.map(function (r) { return r.slice(); }); };
     }
 
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
