@@ -48,6 +48,42 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
 
   function isDark() { return document.documentElement.classList.contains('dark'); }
 
+  /* How big a buffer a host is allowed, and how often it may redraw.
+
+     Every fragment runs five octaves of 3D value noise, so cost is the buffer
+     area - and these hosts are whole page sections, several screens tall. At 2x
+     that was 4 megapixels on a phone and 12 on a desktop, twice over, sixty
+     times a second. Phones were killing the tab for it.
+
+     Resolution is the cheap thing to give up because the field barely uses it.
+     It is quantised into cells of pixelSize CSS px, and pixelSize scales with
+     the ratio, so a dot covers the same ground on screen either way - a 2x
+     buffer computes the same flat cell four times and throws three away. Only
+     the dot's edge is sharper, by half a CSS pixel.
+
+     So: take the largest ratio whose buffer fits the budget. Small hosts still
+     get 2x; the tall ones drop to 1x, which is where the saving is. Anything
+     still over budget at 1x, or on a phone, also halves its frame rate - the
+     noise drifts at 0.05 and a ripple takes three seconds to cross, so there is
+     nothing in the motion fast enough to show it. */
+  var PIXEL_BUDGET = 2.0e6;
+  var COARSE = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
+  function fitDpr(w, h) {
+    /* A phone never gets more than one-to-one whatever its budget allows: the
+       extra ratio buys half a CSS pixel on a dot edge and costs four times the
+       fill rate, on the hardware least able to pay it. */
+    var max = Math.min(window.devicePixelRatio || 1, COARSE ? 1 : 2);
+    var steps = [2, 1.5, 1];
+    for (var i = 0; i < steps.length; i++) {
+      if (steps[i] <= max && w * h * steps[i] * steps[i] <= PIXEL_BUDGET) return steps[i];
+    }
+    return Math.min(max, 1);
+  }
+  function frameMs(w, h, dpr) {
+    return COARSE || w * h * dpr * dpr > PIXEL_BUDGET ? 33 : 0;
+  }
+
   var REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   /* 1.62 was the size it first shipped at; the owner asked for twice that. */
   var SOLID_SCALE = 1.62;
@@ -320,11 +356,12 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
 
     var clickPos = new Float32Array(MAX * 2).fill(-1);
     var clickTimes = new Float32Array(MAX);
-    var idx = 0, dpr = 1;
+    var idx = 0, dpr = 1, FRAME_MS = 0;
 
     function resize() {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
       var w = Math.max(container.clientWidth, 1), h = Math.max(container.clientHeight, 1);
+      dpr = fitDpr(w, h);
+      FRAME_MS = frameMs(w, h, dpr);
       canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
       canvas.style.width = '100%'; canvas.style.height = '100%';
       gl.viewport(0, 0, canvas.width, canvas.height);
@@ -411,8 +448,13 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
     }
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    (function tick() {
-      if (visible && !reduce) {
+    var lastFrame = -1e9;
+    (function tick(now) {
+      /* A hidden tab still gets frames from some browsers, and a host that has
+         scrolled away has nothing to show - neither is worth a draw. */
+      if (visible && !reduce && !document.hidden &&
+          (now === undefined || now - lastFrame >= FRAME_MS)) {
+        lastFrame = now || 0;
         gl.useProgram(prog);
         gl.uniform1f(U.uTime, (performance.now() - start) / 1000);
         gl.uniform2fv(U.uClickPos, clickPos);
