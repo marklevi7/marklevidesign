@@ -125,6 +125,15 @@ that called it — guard the write or the page locks up.
 
 Implementation notes: the handoff drives patterns 1–4 through three.js, which it uses only to draw a fullscreen quad — port shaders onto raw WebGL2 instead (see `assets/patterns/`) so the site takes no CDN dependency. Every pattern must be theme-reactive: light and dark differ in both colour and motion. Mount patterns by script, never in markup, or React hydration drops them.
 
+## The homepage testimonial carousel
+
+Swiper runs it in loop mode with autoplay, and loop mode rotates the list on init: the
+**last** slide in source order is the one that shows first. Production proved it twice -
+with Ilan Dray last the page opened on Ilan, and moving Ariel Ben Lulu to the end made
+the page open on Ariel. So "first in the carousel" means last in the markup, in both
+`index.html` and the homepage bundle. Autoplay advances after about five seconds, which
+makes this easy to mismeasure - sample the active slide within the first few seconds.
+
 ## The one blur
 
 There is a single blur value, `--mld-blur` (currently 15px), declared next to `#mld-theme-host` in every page's inline styles. It drives **both** the sticky header (once scrolled) and the hero proof blob. If the owner asks to change "the blur", change this one value — both places follow.
