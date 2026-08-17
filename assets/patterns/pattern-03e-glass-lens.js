@@ -433,11 +433,12 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
          it. Written to the `translate` property, not `transform`, so it layers
          on top of the reveal's transform instead of fighting it. */
       parallax: { sel: '.mld-proof > div', amount: 0.05, max: 14 },
+      /* One panel: the hero button. It sits in the flow inside this host, so
+         its rect never moves relative to the canvas and the lens needs no
+         scroll work at all - which is most of what made the two-panel version
+         feel heavy. */
       panels: [
-        { sel: '.mld-proof > div', radius: 20 },
-        /* The pill is a pseudo-element, so its box comes from #header's rect
-           plus the ::before insets rather than from an element of its own. */
-        { sel: '#header', pseudo: '::before', radius: 999 }
+        { sel: '#hero-calendly', radius: 16 }
       ]
     });
     var MAX_LENS = 4;
@@ -522,12 +523,14 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
             if (off !== parLast) { parEl.style.translate = '0 ' + off + 'px'; parLast = off; }
           }
         }
-        measureLens();
       }
       function onScroll() { if (!parQueued) { parQueued = true; requestAnimationFrame(parallaxStep); } }
       window.addEventListener('resize', function () { parEl = null; parLast = null; parallaxStep(); });
-      window.addEventListener('scroll', onScroll, { passive: true });
+      /* Only the parallax listens to scroll now. No panel is fixed to the
+         viewport any more, so no lens rect changes as the page moves. */
+      if (LENS.parallax && !reduceMotion) window.addEventListener('scroll', onScroll, { passive: true });
       parallaxStep();
+      measureLens();
       if ('ResizeObserver' in window) {
         var lro = new ResizeObserver(measureLens);
         lro.observe(document.body);
