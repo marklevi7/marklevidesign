@@ -426,8 +426,8 @@ var BASE = { pixelSize: 4, shape: 0, rippleThickness: 0.10 };
 
        Tunable live from the console via window.MLD_LENS. */
     var LENS = window.MLD_LENS || (window.MLD_LENS = {
-      zoom: 1.35,
-      refract: 0,
+      zoom: 1.8,
+      refract: 5,
       /* Soft parallax on the five-star card: it drifts a little against the
          scroll so it reads as floating above the field rather than pinned to
          it. Written to the `translate` property, not `transform`, so it layers
