@@ -298,7 +298,35 @@
     });
   }
 
+  /* Optional float, opted into per page with window.MLD_PARALLAX = selector.
+     The element drifts a little against the scroll so it reads as sitting
+     above what is behind it. Written to `translate` rather than `transform`,
+     so it layers on top of the reveal's transform instead of fighting it, and
+     updated on a scroll-driven frame - one rect read, no layout thrash. Pages
+     that do not set the flag never attach the listener. */
+  function floatOn(sel) {
+    var el = null, queued = false, last = null;
+    function step() {
+      queued = false;
+      /* Re-query when the cached node has left the document. React replaces
+         this subtree during hydration, and a reference taken before that
+         points at an orphan - styling it changes nothing on screen. */
+      if (!el || !el.isConnected) el = document.querySelector(sel);
+      if (!el) return;
+      var r = el.getBoundingClientRect();
+      var off = (window.innerHeight / 2 - (r.top + r.height / 2)) * 0.05;
+      off = Math.round(Math.max(-14, Math.min(14, off)) * 100) / 100;
+      if (off !== last) { el.style.translate = '0 ' + off + 'px'; last = off; }
+    }
+    window.addEventListener('scroll', function () {
+      if (!queued) { queued = true; requestAnimationFrame(step); }
+    }, { passive: true });
+    window.addEventListener('resize', function () { el = null; last = null; step(); });
+    step();
+  }
+
   function boot() { requestAnimationFrame(function () { requestAnimationFrame(build); }); }
+  if (window.MLD_PARALLAX && !reduced) floatOn(window.MLD_PARALLAX);
   if (document.readyState === 'complete') boot();
   else window.addEventListener('load', boot);
   [1500, 3000, 5000, 8000].forEach(function (ms) { setTimeout(boot, ms); });
