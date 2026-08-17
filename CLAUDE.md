@@ -92,10 +92,34 @@ Switching or reverting is that one line — the files stay on disk:
 
 - `assets/patterns/pattern-01-halftone-ripple.js` — pattern 1, sparse dots
 - `assets/patterns/pattern-03-halftone-updraft.js` — pattern 3, round dots (**undo target for the square variant**)
-- `assets/patterns/pattern-03b-updraft-solid.js` — pattern 3 with square cells, live on the homepage
-- `assets/patterns/pattern-03d-durer-composite.js` — 03b with Dürer's solid rendered into the field, live on `/sandbox`
+- `assets/patterns/pattern-03b-updraft-solid.js` — pattern 3 with square cells (**undo target for the composite**)
+- `assets/patterns/pattern-03d-durer-composite.js` — 03b with Dürer's solid rendered into the field. **This is the one live, on all 103 pages** — the homepage and the sandbox run the same file.
 
 Round cells cap near 20% coverage (`maskCircle` radius is `sqrt(cov) * 0.25`), so they can never read as solid; square cells fill completely, which is the knob for "darker in the dark areas". Other density levers, roughly strongest first: dot radius, `density`, canvas `alpha`, `pixelSize`, then the noise curve in the shader.
+
+### The pattern is the page's whole cost
+
+Measured on a phone-sized WebKit: strip the two canvases out and the median
+frame goes from 115ms to 16ms. Nothing else on the page is close — not the
+backdrop-filters, not the footer field on its own, not any CSS blend layer.
+So when a page is slow or a phone kills the tab, this is where to look first.
+
+The lever is **buffer resolution**, and it is nearly free to give up. Every
+fragment runs five octaves of 3D value noise, so cost is buffer area — but the
+field is quantised into cells of `pixelSize` CSS px and `pixelSize` scales with
+the ratio, so a dot covers the same ground on screen at 1x as at 2x. A 2x
+buffer computes each flat cell four times and discards three. Only the dot's
+edge is sharper, by half a CSS pixel.
+
+`fitDpr()` therefore takes the largest of 2 / 1.5 / 1 whose buffer fits a 2.0
+Mpx budget, and never exceeds 1x on a coarse pointer. Small hosts still get 2x;
+the whole-section hosts (the hero is several screens tall) drop to 1x. Anything
+still over budget, and every phone, also halves its frame rate to 30 — the
+noise drifts at 0.05 and a ripple takes three seconds to cross, so there is
+nothing fast enough in the motion to show it.
+
+That took a phone from 16MB of drawing buffer to 4MB and a desktop from 50MB to
+12.6MB. Before touching the shader itself, check these two numbers first.
 
 ### The sandbox and the solid
 
