@@ -149,6 +149,23 @@ that called it — guard the write or the page locks up.
 
 Implementation notes: the handoff drives patterns 1–4 through three.js, which it uses only to draw a fullscreen quad — port shaders onto raw WebGL2 instead (see `assets/patterns/`) so the site takes no CDN dependency. Every pattern must be theme-reactive: light and dark differ in both colour and motion. Mount patterns by script, never in markup, or React hydration drops them.
 
+## The client logo strip
+
+Homepage only — the other pages carry the `scroll-x` CSS but no strip. A logo has
+to be added in **four** places or it silently disappears: the two
+`<ul class="clients-list">` in `index.html` (the second is the `aria-hidden`
+duplicate that makes the scroll seamless) and the two matching runs in the
+homepage bundle. Miss the bundle and the logo shows until hydration, then
+vanishes — which is exactly what had happened to Ministry of Defence, Scribe
+Security and ShipIn, added to the HTML alone and invisible on the live site
+until August 2026.
+
+House convention for the SVGs: `120×60` viewBox, paths filled `#706972`,
+`/assets/<name>_mld2026.svg`. The strip applies `grayscale(100%)` on top.
+The scroll is `translateX(-100%)`, so it stays seamless at any count — adding
+one logo to twenty-four speeds it up by 4%, which is below noticing, and the
+duration is shared with every other page's inline CSS, so leave it alone.
+
 ## The homepage testimonial carousel
 
 Swiper runs it in loop mode with autoplay, and loop mode rotates the list on init: the
