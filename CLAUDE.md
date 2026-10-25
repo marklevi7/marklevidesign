@@ -2,6 +2,26 @@
 
 This repo is the live site **marklevi.com**: a Webstudio static export served by GitHub Pages from `main`. Changes go live only after merging to `main` (deploy takes ~1–2 min).
 
+## How the domain is wired
+
+Registrar is DreamHost; DNS is Cloudflare (`elisabeth`/`jack.ns.cloudflare.com`). The
+website itself does **not** go through Cloudflare — `marklevi.com` and `www` are CNAMEs
+to `marklevi7.github.io` set to **DNS only** (grey cloud), so visitors reach GitHub
+Pages directly. `life` and `nora` are separate Pages sites on the same CNAME target;
+GitHub tells the three apart by the `CNAME` file in each repo.
+
+Cloudflare still runs **DNS and email** — the `MX` records point at
+`route1/2/3.mx.cloudflare.net`, so never move the nameservers off Cloudflare without
+rebuilding mail first.
+
+**Do not switch the website records back to Proxied.** That broke the site on
+2026-10-25 with a Cloudflare 526. GitHub Pages renews its certificate by answering a
+challenge on the domain; with the orange cloud on, Cloudflare intercepted it, renewal
+had been failing silently since July, and the certificate expired on 21 October. Grey
+cloud restored it within minutes and GitHub now renews on its own. If HTTPS ever fails
+again, check the proxy status of those two records first, then
+`Settings → Pages → Custom domain` (remove, re-add) to force a fresh certificate.
+
 ## How to edit content (required procedure)
 
 Page text exists in **two places** and both must be edited, or the old text will flash back after hydration:
